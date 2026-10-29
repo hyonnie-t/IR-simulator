@@ -24,6 +24,8 @@ const SAVE_KEYS = ["screen", "placed", "tries1", "done1", "spin", "loomMax", "en
 const $ = id => document.getElementById(id);
 const byId = (arr, id) => arr.find(x => x.id === id);
 const val = id => $(id).value.trim();
+/* 교사 미리보기(?preview=1)에서는 필수 활동을 안 해도 다음으로 넘어간다(효니 2026-10-29). 학생 화면은 그대로. */
+const skip = () => S.preview;
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -250,7 +252,7 @@ function renderStep1() {
   });
   $("s1Check").hidden = S.done1;
   $("s1Done").hidden = !S.done1;
-  $("s1Next").disabled = !S.done1;
+  $("s1Next").disabled = !S.done1 && !skip();
 }
 
 function pickTag(slotId) {
@@ -384,8 +386,8 @@ function checkStep1() {
 }
 
 function goStep2() {
-  if (!S.done1) return;
-  if (val("p1").length < 1) { $("s1Err").textContent = "맨 위 칸에 떠오른 것 하나를 써 줘."; return; }
+  if (!S.done1 && !skip()) return;
+  if (val("p1").length < 1 && !skip()) { $("s1Err").textContent = "맨 위 칸에 떠오른 것 하나를 써 줘."; return; }
   $("s1Err").textContent = "";
   show("s2");
 }
@@ -398,7 +400,7 @@ function renderStep2() {
   tabs.innerHTML = "";
   tabs.setAttribute("role", "radiogroup");
   SPINNERS.forEach((t, i) => {
-    const prevDone = i === 0 || S.spin[SPINNERS[i - 1].id] !== undefined;
+    const prevDone = i === 0 || S.spin[SPINNERS[i - 1].id] !== undefined || skip();
     const b = el("button", "spin-tab", t.name + (S.spin[t.id] !== undefined ? " ✓" : (prevDone ? "" : " 🔒")));
     b.type = "button";
     b.setAttribute("role", "radio");
@@ -414,10 +416,10 @@ function renderStep2() {
   $("spinImg").alt = tool.name + " 그림";
   renderBars();
   const allSpun = SPINNERS.every(t => S.spin[t.id] !== undefined);
-  $("loomCard").hidden = !allSpun;
-  if (allSpun) renderLooms();
+  $("loomCard").hidden = !allSpun && !skip();
+  if (allSpun || skip()) renderLooms();
   $("s2Done").hidden = !S.done2;
-  $("s2Next").disabled = !S.done2;
+  $("s2Next").disabled = !S.done2 && !skip();
 }
 
 function resetSpinFace() {
@@ -654,8 +656,8 @@ function setLoomMode(steam) {
 }
 
 function goStep3() {
-  if (!S.done2) return;
-  if (val("w1").length < 2) { $("s2Err").textContent = "달라진 점을 한 문장 써 줘."; return; }
+  if (!S.done2 && !skip()) return;
+  if (val("w1").length < 2 && !skip()) { $("s2Err").textContent = "달라진 점을 한 문장 써 줘."; return; }
   $("s2Err").textContent = "";
   show("s3");
 }
@@ -664,7 +666,7 @@ function goStep3() {
 function renderStep3() {
   radioGroup($("landPick"), VEHICLES.land, () => S.land, v => { S.land = v; clearRace(); });
   radioGroup($("seaPick"), VEHICLES.sea, () => S.sea, v => { S.sea = v; clearRace(); });
-  $("steamCard").hidden = !S.ran;
+  $("steamCard").hidden = !S.ran && !skip();
   const list = $("steamList");
   list.innerHTML = "";
   STEAM_ITEMS.forEach(it => {
@@ -679,7 +681,7 @@ function renderStep3() {
   });
   $("steamCheck").hidden = S.done3;
   $("s3Done").hidden = !S.done3;
-  $("s3Next").disabled = !S.done3;
+  $("s3Next").disabled = !S.done3 && !skip();
 }
 
 /* 출발하면 네 가지 길(육지 2 × 바다 2)을 한 번에 달려 내가 고른 길과 비교한다(2026-10-29 «매번 눌러 보지 않을 것»).
@@ -791,10 +793,10 @@ function renderStep4() {
     box.appendChild(row);
   });
   $("roleCheck").hidden = S.rolesOk;
-  $("orderCard").hidden = !S.rolesOk;
+  $("orderCard").hidden = !S.rolesOk && !skip();
   renderOrder();
   $("s4Done").hidden = !S.done4;
-  $("s4Next").disabled = !S.done4;
+  $("s4Next").disabled = !S.done4 && !skip();
 }
 
 function checkRoles() {
@@ -901,7 +903,7 @@ function renderPadlet() {
 }
 
 function goWrap() {
-  if (!S.done4) return;
+  if (!S.done4 && !skip()) return;
   renderSummary();
   show("s5");
 }
@@ -909,9 +911,9 @@ function goWrap() {
 async function submitAll() {
   if (S.sending || S.submitted) return;
   $("outErr").textContent = "";
-  if (!S.gear) { $("s5Err").textContent = "톱니바퀴를 하나 골라 줘."; $("gearList").scrollIntoView({ behavior: "smooth" }); return; }
-  if (studentChars() < 10) { $("s5Err").textContent = "글을 조금 더 써 줘."; return; }
-  if (studentChars() < WRAP.minChars && !confirm("아직 " + studentChars() + "자야. " + WRAP.minChars + "자보다 짧은데 그래도 " + (S.share ? "마칠까?" : "제출할까?"))) return;
+  if (!S.gear && !skip()) { $("s5Err").textContent = "톱니바퀴를 하나 골라 줘."; $("gearList").scrollIntoView({ behavior: "smooth" }); return; }
+  if (studentChars() < 10 && !skip()) { $("s5Err").textContent = "글을 조금 더 써 줘."; return; }
+  if (studentChars() < WRAP.minChars && !skip() && !confirm("아직 " + studentChars() + "자야. " + WRAP.minChars + "자보다 짧은데 그래도 " + (S.share ? "마칠까?" : "제출할까?"))) return;
   S.sending = true; $("submitBtn").disabled = true; $("submitBtn").textContent = "보내는 중…";
   const payload = {
     studentId: S.sid, studentName: S.name, gameName: CONFIG.GAME_NAME,
@@ -1062,6 +1064,7 @@ function init() {
   S.share = !S.preview && (q.get("share") === "1" || !CONFIG.SHEET_WEBAPP_URL); // 파일 배포본은 주소가 비어 있어 자동으로 공유 모드
   let sid = (q.get("sid") || "").trim(), name = (q.get("name") || "").trim();
   if (S.preview) {
+    $("previewBar").textContent = "미리보기 모드 — 저장되지 않아 · 활동을 다 안 해도 «다음»으로 넘어갈 수 있어";
     $("previewBar").hidden = false;
     if (!sid) sid = "20512";
     if (!name) name = "미리보기";
@@ -1142,7 +1145,7 @@ function init() {
   $("goBtn").addEventListener("click", runRoute);
   $("steamCheck").addEventListener("click", checkSteam);
   $("s3Back").addEventListener("click", () => show("s2"));
-  $("s3Next").addEventListener("click", () => { if (S.done3) show("s4"); });
+  $("s3Next").addEventListener("click", () => { if (S.done3 || skip()) show("s4"); });
   $("roleCheck").addEventListener("click", checkRoles);
   $("orderCheck").addEventListener("click", checkOrder);
   $("s4Back").addEventListener("click", () => show("s3"));
