@@ -98,7 +98,7 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 .tag[aria-pressed="true"]{background:var(--brick-wash);border-color:var(--brick);box-shadow:0 0 0 3px var(--brick)}
 .tag.lifted{opacity:.35}
 .tag.ghost{position:fixed;z-index:1000;pointer-events:none;transform:translate(-50%,-60%) rotate(-3deg);box-shadow:0 6px 16px rgba(35,38,42,.3);cursor:grabbing}
-.tag.stuck{cursor:pointer;touch-action:auto;background:var(--brick-wash)}
+.tag.stuck{cursor:grab;touch-action:none;background:var(--brick-wash)}
 .fact-list{display:flex;flex-direction:column;gap:12px}
 .fact{display:grid;grid-template-columns:1fr 13em;gap:12px;align-items:center;padding:14px 16px;border:2px solid #b4b9bd;border-radius:6px;background:#fff;cursor:pointer;min-height:92px}
 .fact-text{margin:0;font-size:1.05rem}

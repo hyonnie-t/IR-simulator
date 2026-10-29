@@ -228,6 +228,7 @@ function renderStep1() {
     const pocket = el("div", "pocket");
     if (sid) {
       const t = tagEl(byId(SLOTS, sid), "stuck");
+      t.addEventListener("pointerdown", e => { if (!S.done1) dragStart(e, sid, STUCK_DRAG); }); // 붙인 카드도 끌어서 다른 문장으로 옮긴다(효니 2026-10-29)
       pocket.appendChild(t);
       card.classList.add("filled");
     } else {
@@ -236,7 +237,11 @@ function renderStep1() {
     card.appendChild(pocket);
     if (S.done1) card.classList.add("ok");
     if (S.selSlot && !sid) card.classList.add("ready");
-    const act = e => { if (e.target.closest && e.target.closest(".term")) return; pickCard(c.id); };
+    const act = e => {
+      if (e.target.closest && e.target.closest(".term")) return;
+      if (Date.now() - drag.droppedAt < 400) return; // 끌어서 놓은 직후 따라오는 click은 무시(놓자마자 떨어지지 않게)
+      pickCard(c.id);
+    };
     card.addEventListener("click", act);
     card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickCard(c.id); } });
     facts.appendChild(card);
@@ -273,7 +278,7 @@ function pickCard(cardId) {
 
 /* 끌기: 손가락·마우스 모두 pointer 이벤트로. 조금이라도 움직여야 끌기로 보고, 안 움직이면 누르기(onTap)로 본다.
  * 1단 낱말 카드와 2단 일꾼 배치가 같이 쓴다. opt = { target: 놓을 곳 선택자, ghost: () => 끌리는 모양, onTap(id), onDrop(id, 놓은 곳), onCancel() } */
-const drag = { id: "", x: 0, y: 0, ghost: null, moved: false, over: null, opt: null };
+const drag = { id: "", x: 0, y: 0, ghost: null, moved: false, over: null, opt: null, droppedAt: 0 };
 
 function dragStart(e, id, opt) {
   if (e.button !== undefined && e.button !== 0) return;
@@ -321,6 +326,7 @@ function dragEnd(e) {
   t.classList.remove("lifted");
   if (!id) return;
   if (!moved) { opt.onTap(id); return; }
+  drag.droppedAt = Date.now();
   if (over && e.type === "pointerup") { opt.onDrop(id, over); return; }
   opt.onCancel();
 }
@@ -330,6 +336,20 @@ const TAG_DRAG = {
   ghost: () => tagEl(byId(SLOTS, drag.id)),
   onTap: id => pickTag(id),
   onDrop: (id, card) => { $("s1Msg").textContent = ""; stick(id, card.dataset.card); },
+  onCancel: () => renderStep1()
+};
+
+/* 문장 카드에 이미 붙인 낱말 카드: 다른 문장 카드로 끌면 옮겨 붙고(그 문장의 카드는 위로 돌아감), 위 낱말 카드 칸으로 끌면 떼어진다.
+ * 누르기는 지금처럼 문장 카드의 click(떼기)이 맡는다. */
+const STUCK_DRAG = {
+  target: ".fact, #slotList",
+  ghost: () => tagEl(byId(SLOTS, drag.id)),
+  onTap: () => {},
+  onDrop: (id, spot) => {
+    $("s1Msg").textContent = "";
+    if (spot.classList.contains("fact")) { stick(id, spot.dataset.card); return; }
+    delete S.placed[id]; save(); renderStep1();
+  },
   onCancel: () => renderStep1()
 };
 
@@ -912,6 +932,7 @@ async function submitAll() {
     return;
   }
   S.sending = false; S.submitted = true;
+  unlockExamples();
   if (!S.preview) { // 미리보기는 기본 학번(20512)이라 그 학번 학생의 기기 기록을 지우지 않는다
     if (window.DraftGuard) DraftGuard.clear(); // 저장 성공 → 임시저장 삭제
     clearSave();
@@ -938,6 +959,10 @@ async function copyOut() {
   if (!ok) { $("outMsg").textContent = "복사가 안 됐어. 한 번 더 눌러 줘."; return; }
   S.copied = true;
   $("outMsg").textContent = S.submitted ? "복사했어. 패들렛에 붙여넣기 해." : "복사했어. 제출 버튼도 꼭 눌러 줘!";
+}
+
+/* 예시 글은 제출(글 작성 완료)한 학생에게만 연다 — 먼저 써 본 뒤 비교하게(효니 2026-10-29) */
+function unlockExamples() {
   $("exampleBtn").disabled = false;
   $("exampleLock").hidden = true;
 }
@@ -954,7 +979,7 @@ function renderExamples() {
 }
 
 function toggleExamples() {
-  if (!S.copied) return;
+  if (!S.submitted) return;
   const box = $("examples");
   box.hidden = !box.hidden;
   $("exampleBtn").setAttribute("aria-expanded", box.hidden ? "false" : "true");
