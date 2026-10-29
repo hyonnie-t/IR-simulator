@@ -8,7 +8,7 @@ const CONFIG = {
 };
 
 const S = {
-  sid: "", name: "", grade: 0, ban: 0, preview: false, screen: "s1",
+  sid: "", name: "", grade: 0, ban: 0, preview: false, share: false, screen: "s1",
   placed: {}, selSlot: "", tries1: 0, done1: false,
   spinTool: "wheel", spin: {}, loomSteam: false, loomOn: [], loomMax: { hand: 0, steam: 0 }, engineTried: false, done2: false,
   land: "", sea: "", ran: false, steamPicked: [], done3: false,
@@ -85,7 +85,7 @@ function clearSave() {
 
 /* ── 시트 전송 ── */
 async function postToSheet(payload) {
-  if (S.preview) return { result: "success", preview: true };
+  if (S.preview || S.share) return { result: "success", preview: true };
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 30000); // 응답이 안 오면 30초 뒤 실패로 돌려 다시 누르게 한다
   let json;
@@ -155,14 +155,15 @@ function textbookBox(labelId, textId, label, text) {
 function startApp() {
   const sid = $("sid").value.trim();
   const name = $("sname").value.trim();
-  const p = parseSid(sid);
+  const p = parseSid(sid) || (S.share && sid ? { grade: 0, ban: 0, num: 0 } : null); // 공유 모드는 학번 형식을 가리지 않는다
   if (!p) { $("startErr").textContent = "학번은 숫자 5자리로 써 줘. (예: 20512)"; return; }
   if (!name) { $("startErr").textContent = "이름을 써 줘."; return; }
   $("startErr").textContent = "";
   S.sid = sid; S.name = name; S.grade = p.grade; S.ban = p.ban;
   FocusGuard.start({ key: CONFIG.GAME_NAME + ":" + sid }); // 작성 중 화면 이탈·붙여넣기 기록 (history26 snippets/focus_guard.js)
   if (window.DraftGuard) DraftGuard.start({ key: CONFIG.GAME_NAME, sid: sid }); // 글쓰기 칸 임시저장 (history26 v75)
-  loadPadletUrl(p.grade, p.ban).then(u => { S.padletUrl = u; renderPadlet(); });
+  if (S.share) renderPadlet(); // 공유 모드는 백엔드에 묻지 않는다
+  else loadPadletUrl(p.grade, p.ban).then(u => { S.padletUrl = u; renderPadlet(); });
   load();
   renderAll();
   show(S.screen && SCREENS[S.screen] ? S.screen : "s1");
@@ -182,7 +183,8 @@ function renderAll() {
  *    끌기가 어려운 학생은 낱말 카드를 누르고 문장 카드를 눌러도 된다. S.placed = { 낱말 카드(칸)id: 카드id } ── */
 function shuffled(arr, seed) {
   /* 학번으로 섞는 순서를 고정한다(새로고침해도 카드 자리가 안 바뀌게) */
-  let s = Number(seed) || 7;
+  let s = Math.abs(Number(seed));
+  if (!isFinite(s) || !s) s = 7; // 공유 모드는 학번이 아무 글자여도 되므로 음수·무한대·NaN을 거른다
   const out = arr.slice();
   for (let i = out.length - 1; i > 0; i--) {
     s = (s * 9301 + 49297) % 233280;
@@ -885,7 +887,7 @@ function renderSummary() {
   $("bodyCount").classList.toggle("warn", short);
   $("w2c").textContent = n + "자";
   $("submitBtn").disabled = S.submitted || S.sending;
-  $("submitBtn").textContent = S.submitted ? "제출 완료" : "제출";
+  $("submitBtn").textContent = S.submitted ? (S.share ? "마침" : "제출 완료") : (S.share ? "마치기" : "제출");
   renderPadlet();
 }
 
@@ -894,7 +896,7 @@ function renderPadlet() {
   if (S.padletUrl) {
     a.href = S.padletUrl; a.hidden = false; $("padletMsg").textContent = "";
   } else {
-    a.hidden = true; $("padletMsg").textContent = "패들렛 링크는 선생님이 알려 준 곳을 써 줘.";
+    a.hidden = true; $("padletMsg").textContent = S.share ? "" : "패들렛 링크는 선생님이 알려 준 곳을 써 줘.";
   }
 }
 
@@ -909,7 +911,7 @@ async function submitAll() {
   $("outErr").textContent = "";
   if (!S.gear) { $("s5Err").textContent = "톱니바퀴를 하나 골라 줘."; $("gearList").scrollIntoView({ behavior: "smooth" }); return; }
   if (studentChars() < 10) { $("s5Err").textContent = "글을 조금 더 써 줘."; return; }
-  if (studentChars() < WRAP.minChars && !confirm("아직 " + studentChars() + "자야. " + WRAP.minChars + "자보다 짧은데 그래도 제출할까?")) return;
+  if (studentChars() < WRAP.minChars && !confirm("아직 " + studentChars() + "자야. " + WRAP.minChars + "자보다 짧은데 그래도 " + (S.share ? "마칠까?" : "제출할까?"))) return;
   S.sending = true; $("submitBtn").disabled = true; $("submitBtn").textContent = "보내는 중…";
   const payload = {
     studentId: S.sid, studentName: S.name, gameName: CONFIG.GAME_NAME,
@@ -939,7 +941,7 @@ async function submitAll() {
   }
   ["p1", "w1", "w2"].forEach(id => { $(id).readOnly = true; }); // 제출 뒤 수정 잠금
   renderSummary();
-  $("outMsg").textContent = S.preview ? "미리보기라 저장하지 않았어." : (S.copied ? "제출했어! 복사한 글을 패들렛에 올려 줘." : "제출했어! 이제 글을 복사해서 패들렛에 올려 줘.");
+  $("outMsg").textContent = S.preview ? "미리보기라 저장하지 않았어." : S.share ? (S.copied ? "마쳤어! 복사한 글을 선생님이 알려 준 곳에 올려 줘." : "마쳤어! 이제 글을 복사해서 선생님이 알려 준 곳에 올려 줘.") : (S.copied ? "제출했어! 복사한 글을 패들렛에 올려 줘." : "제출했어! 이제 글을 복사해서 패들렛에 올려 줘.");
 }
 
 async function copyOut() {
@@ -958,7 +960,7 @@ async function copyOut() {
   }
   if (!ok) { $("outMsg").textContent = "복사가 안 됐어. 한 번 더 눌러 줘."; return; }
   S.copied = true;
-  $("outMsg").textContent = S.submitted ? "복사했어. 패들렛에 붙여넣기 해." : "복사했어. 제출 버튼도 꼭 눌러 줘!";
+  $("outMsg").textContent = S.submitted ? (S.share ? "복사했어. 선생님이 알려 준 곳에 붙여넣기 해." : "복사했어. 패들렛에 붙여넣기 해.") : (S.share ? "복사했어. 마치기 버튼도 눌러 줘!" : "복사했어. 제출 버튼도 꼭 눌러 줘!");
 }
 
 /* 예시 글은 제출(글 작성 완료)한 학생에게만 연다 — 먼저 써 본 뒤 비교하게(효니 2026-10-29) */
@@ -989,11 +991,20 @@ function toggleExamples() {
 function init() {
   const q = new URLSearchParams(location.search);
   S.preview = q.get("preview") === "1";
+  S.share = !S.preview && (q.get("share") === "1" || !CONFIG.SHEET_WEBAPP_URL); // 파일 배포본은 주소가 비어 있어 자동으로 공유 모드
   let sid = (q.get("sid") || "").trim(), name = (q.get("name") || "").trim();
   if (S.preview) {
     $("previewBar").hidden = false;
     if (!sid) sid = "20512";
     if (!name) name = "미리보기";
+  }
+  if (S.share) {
+    $("previewBar").textContent = "선생님 공유용 — 제출한 글은 어디에도 저장되지 않아. 마지막에 꼭 복사해서 올려 줘.";
+    $("previewBar").hidden = false;
+    $("sidLabel").textContent = "학번 또는 번호 (선생님이 알려 준 대로)";
+    $("sid").setAttribute("maxlength", "12");
+    $("sid").removeAttribute("inputmode");
+    $("exampleLock").textContent = "글을 다 쓰고 마치면 예시 글을 볼 수 있어.";
   }
   $("sid").value = sid; $("sname").value = name;
 
@@ -1040,7 +1051,8 @@ function init() {
   $("wrapMust").textContent = WRAP.must;
   $("w2").placeholder = WRAP.writePh;
   $("wrapHint").textContent = WRAP.hint;
-  $("wrapGuide").textContent = WRAP.guide;
+  $("wrapGuide").textContent = S.share ? "글을 확인하고 마친 뒤, 복사해서 선생님이 알려 준 곳에 올려 줘." : WRAP.guide;
+  if (S.share) $("padletGuide").textContent = "마친 뒤 글을 복사해서, 선생님이 알려 준 곳에 붙여넣어 올려 줘.";
   $("copyBtn").textContent = WRAP.copyBtn;
   $("padletBtn").textContent = WRAP.padletBtn;
   $("exampleBtn").textContent = WRAP.exampleBtn;

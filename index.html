@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <!-- 포털 로그인 세션 자동 첨부(history26 v83) -->
-<script src="https://hyonnie-t.github.io/history26/snippets/portal_auth.js"></script>
+<script>if(!/[?&]share=1/.test(location.search))document.write('<script src="https://hyonnie-t.github.io/history26/snippets/portal_auth.js"><\/script>');</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>면직물 공장을 세워라!</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,7 +36,7 @@
       </blockquote>
     </div>
     <div class="card">
-      <label for="sid">학번 (5자리, 예: 20512)</label>
+      <label id="sidLabel" for="sid">학번 (5자리, 예: 20512)</label>
       <input id="sid" inputmode="numeric" maxlength="5" autocomplete="off">
       <label for="sname">이름</label>
       <input id="sname" autocomplete="off">
@@ -229,7 +229,7 @@
       </div>
       <p id="outMsg" class="note" role="status"></p>
       <div class="padlet-box">
-        <p class="padlet-guide">제출하고 나서 글을 복사해서, 우리 반 패들렛에 붙여넣어 올려 줘.</p>
+        <p id="padletGuide" class="padlet-guide">제출하고 나서 글을 복사해서, 우리 반 패들렛에 붙여넣어 올려 줘.</p>
         <a id="padletBtn" class="btn btn-ghost wide" target="_blank" rel="noopener" hidden></a>
         <p id="padletMsg" class="note"></p>
       </div>
