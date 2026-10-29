@@ -88,18 +88,32 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 .hint summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font:500 16px var(--sans);color:var(--olive)}
 .hint p{margin:0 0 12px}
 
-/* 1단: 칸과 문장 카드 */
-.slot-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
-.slot{border:2px dashed #b4b9bd;border-radius:5px;padding:10px 12px;background:#fff;cursor:pointer;min-height:96px}
-.slot.filled{border-style:solid;border-color:var(--soot)}
-.slot.ok{border-color:var(--brass);background:var(--brass-wash)}
-.slot-name{font:700 16px var(--sans);color:var(--soot-deep);margin-bottom:4px}
-.slot-empty{margin:0;color:var(--muted);font:16px var(--sans)}
-.slot-fill{margin:0;font-size:16px;line-height:1.6}
-.fact-list{display:flex;flex-direction:column;gap:10px}
-.fact{padding:12px 14px;border:1px solid #b4b9bd;border-radius:4px;background:#fff;cursor:pointer}
-.fact p{margin:0}
-.fact[aria-pressed="true"]{border-color:var(--brick);background:var(--brick-wash);box-shadow:0 0 0 2px var(--brick) inset}
+/* 1단: 꼬리표(짧다)를 문장 카드(길다)에 끌어다 붙인다. 꼬리표 칸은 스크롤해도 위에 붙어 있다. */
+.tray{position:sticky;top:0;z-index:5;margin:0 -8px 14px;padding:10px 8px;background:var(--page);border-bottom:2px solid var(--line)}
+.tray-label,.fact-label{font:700 16px var(--sans);color:var(--soot-deep);margin-bottom:8px}
+.tag-list{display:flex;flex-wrap:wrap;gap:8px;min-height:52px;align-items:center}
+.tag-list .note{margin:0}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:48px;padding:6px 14px;border:2px solid var(--soot);border-radius:999px;background:#fff;color:var(--soot-deep);font:700 16px var(--sans);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.tag-icon{font-size:1.2rem}
+.tag[aria-pressed="true"]{background:var(--brick-wash);border-color:var(--brick);box-shadow:0 0 0 3px var(--brick)}
+.tag.lifted{opacity:.35}
+.tag.ghost{position:fixed;z-index:1000;pointer-events:none;transform:translate(-50%,-60%) rotate(-3deg);box-shadow:0 6px 16px rgba(35,38,42,.3);cursor:grabbing}
+.tag.stuck{cursor:pointer;touch-action:auto;background:var(--brick-wash)}
+.fact-list{display:flex;flex-direction:column;gap:12px}
+.fact{display:grid;grid-template-columns:1fr 13em;gap:12px;align-items:center;padding:14px 16px;border:2px solid #b4b9bd;border-radius:6px;background:#fff;cursor:pointer;min-height:92px}
+.fact-text{margin:0;font-size:1.05rem}
+.pocket{display:flex;align-items:center;justify-content:center;min-height:64px;border:2px dashed #9aa1a7;border-radius:8px;background:#f6f6f3;padding:6px}
+.pocket-empty{color:var(--muted);font:16px var(--sans);text-align:center}
+.fact.filled{border-color:var(--soot)}
+.fact.filled .pocket{border-style:solid;border-color:transparent;background:none}
+.fact.ready .pocket,.fact.hover .pocket{border-color:var(--brick);background:var(--brick-wash)}
+.fact.hover{box-shadow:0 0 0 3px var(--brick)}
+.fact.ok{border-color:var(--brass);background:var(--brass-wash)}
+
+/* 설명용 그림 */
+.pic{margin:0;text-align:center}
+.pic img{display:block;width:100%;height:auto;border-radius:6px;border:1px solid var(--line);background:#faf8f2}
+.pic figcaption{font:14px/1.4 var(--sans);color:var(--muted);margin-top:2px}
 
 /* 2단: 실 뽑기 */
 .spin-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 10px}
@@ -107,6 +121,7 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 .spin-tab[aria-checked="true"]{border-color:var(--brick);background:var(--brick-wash);font-weight:700}
 .spin-tab:disabled{opacity:.5;cursor:not-allowed}
 .spin-stage{border:1px solid var(--line);border-radius:5px;padding:14px;background:#fff}
+.spin-head{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:start;margin-bottom:10px}
 .spin-name{font:700 1.05rem var(--sans);color:var(--soot-deep)}
 .spin-cap{margin:4px 0 12px;color:var(--muted);font-size:16px;line-height:1.6}
 .spin-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -128,11 +143,31 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 /* 2단: 방직기 */
 .loom-switch{display:flex;gap:10px;flex-wrap:wrap}
 .loom-switch .opt{flex:1 1 200px}
-.workers{display:flex;align-items:center;gap:8px;margin:14px 0 8px;font-size:1.6rem;min-height:2.2rem}
+.workers{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:14px 0 8px;font-size:1.6rem;min-height:2.2rem}
+.worker-note{font:16px var(--sans);color:var(--muted)}
 .worker.busy{opacity:.35}
-.engine{font:700 16px var(--sans);padding:4px 10px;border:1px solid var(--brass);border-radius:4px;background:var(--brass-wash);color:var(--soot-deep)}
+/* 증기 기관: 기관 → 축(방직기 줄 위 막대) → 벨트 → 방직기. 멈추면(halted) 모두 선다. */
+.engine-box{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;margin:12px 0 6px;padding:12px;border:2px solid var(--brass);border-radius:6px;background:var(--brass-wash)}
+.engine-title{font:700 1.05rem var(--sans);color:var(--soot-deep);margin-bottom:8px}
+.engine-state::before{content:"멈춰 있음";font:500 16px var(--sans);color:var(--muted)}
+.engine-box.run .engine-state::before{content:"돌아가는 중";color:var(--soot)}
+.engine-box.off .engine-state::before{content:"멈춤!";color:var(--alert);font-weight:700}
+.engine-box.run .engine-pic img{animation:chug .5s ease-in-out infinite alternate}
+.power-line{grid-column:1/-1;text-align:center;font:700 16px var(--sans);color:var(--soot-deep)}
+.engine-box.off .power-line{opacity:.35;text-decoration:line-through}
+@keyframes chug{from{transform:translateY(0)}to{transform:translateY(-2px)}}
+.loom-grid.steam{padding-top:24px;row-gap:34px}
+.loom-grid.steam .loom::after{content:"";position:absolute;left:-6px;right:-6px;top:-25px;height:8px;border-radius:4px;background:repeating-linear-gradient(90deg,var(--soot) 0 10px,var(--brass) 10px 20px);animation:shaft .6s linear infinite}
+.loom-grid.halted .loom::after{animation:none;filter:grayscale(1);opacity:.6}
+.belt{position:absolute;left:50%;top:-18px;width:6px;height:18px;margin-left:-3px;background:repeating-linear-gradient(180deg,#5b4a2e 0 4px,#9b845a 4px 8px)}
+.loom.on .belt{animation:belt .3s linear infinite}
+.loom-grid.halted .loom .belt,.loom-grid.halted .loom.on .cloth,.loom-grid.halted .loom.on .shuttle{animation-play-state:paused}
+.loom-grid.halted .loom.on{background:#f1f1ee;border-color:#9aa1a7}
+.loom-grid.steam .loom.on .shuttle{animation-duration:.22s}
+@keyframes shaft{to{background-position:40px 0}}
+@keyframes belt{to{background-position:0 8px}}
 .loom-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.loom{position:relative;min-height:96px;border:1px solid #b4b9bd;border-radius:4px;background:#fff;cursor:pointer;padding:10px}
+.loom{position:relative;overflow:visible;min-height:96px;border:1px solid #b4b9bd;border-radius:4px;background:#fff;cursor:pointer;padding:10px}
 .loom.on{border-color:var(--brick);background:var(--brick-wash)}
 .loom-frame{position:relative;display:block;height:56px;border:3px solid var(--soot);border-top-width:6px;border-radius:2px;overflow:hidden}
 .cloth{position:absolute;left:0;right:0;bottom:0;height:0;background:repeating-linear-gradient(90deg,#fff 0 4px,#dfe4e8 4px 8px)}
@@ -194,7 +229,7 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 .term{border-bottom:2px dotted var(--brick)}
 
 @media (prefers-reduced-motion:reduce){
-  .loom.on .cloth,.loom.on .shuttle,.gear[aria-checked="true"] .gear-icon svg{animation:none}
+  .loom.on .cloth,.loom.on .shuttle,.loom.on .belt,.loom-grid.steam .loom::after,.engine-box.run .engine-pic img,.gear[aria-checked="true"] .gear-icon svg{animation:none}
 }
 
 /* 태블릿 가로(1180)·세로(768~820): 기본값. 폰(≤560) */
@@ -209,6 +244,9 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
   .bar-row{grid-template-columns:1fr 6em;}
   .bar-row .bar-name{grid-column:1/-1}
   .loom-grid{grid-template-columns:repeat(2,1fr)}
+  .fact{grid-template-columns:1fr}
+  .pocket{min-height:56px}
+  .spin-head,.engine-box{grid-template-columns:96px 1fr;gap:10px}
   .gear-list{grid-template-columns:1fr}
   .opt-row .opt{flex-basis:100%}
   .nav .btn-ghost{flex-basis:28%}
