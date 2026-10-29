@@ -58,7 +58,7 @@
       <p id="s1How" class="note"></p>
       <details class="hint"><summary>💡 막막하면 힌트 보기</summary><p id="s1Hint"></p></details>
       <div class="tray">
-        <div class="tray-label">공장에 필요한 것 꼬리표</div>
+        <div class="tray-label">공장에 필요한 것 낱말 카드</div>
         <div id="slotList" class="tag-list"></div>
       </div>
       <div class="fact-label">교과서 160쪽 문장 카드</div>
@@ -90,21 +90,19 @@
       <p id="s2Rule" class="note"></p>
       <div id="spinTabs" class="spin-tabs"></div>
       <div class="spin-stage">
-        <div class="spin-head">
-          <figure class="pic spin-pic"><img id="spinImg" src="img/wheel.jpg" alt="" width="480" height="480"><figcaption id="spinPicNote"></figcaption></figure>
-          <div>
-            <div id="spinName" class="spin-name"></div>
-            <p id="spinCap" class="spin-cap"></p>
-          </div>
-        </div>
+        <div id="spinName" class="spin-name"></div>
+        <p id="spinCap" class="spin-cap"></p>
         <div class="spin-row">
           <div class="spin-clock"><span id="spinTime">10.0</span><small>초</small></div>
-          <button id="spinBtn" class="spin-btn" aria-label="도구 돌리기">
-            <svg viewBox="0 0 100 100" aria-hidden="true" id="spinWheel"><circle cx="50" cy="50" r="42" class="wheel-rim"/><g class="wheel-spokes"><line x1="50" y1="8" x2="50" y2="92"/><line x1="8" y1="50" x2="92" y2="50"/><line x1="20" y1="20" x2="80" y2="80"/><line x1="80" y1="20" x2="20" y2="80"/></g><circle cx="50" cy="50" r="9" class="wheel-hub"/></svg>
-            <span id="spinBtnText">눌러서 시작</span>
+          <button id="spinBtn" class="spin-pic-btn" type="button" aria-label="그림을 눌러 도구 돌리기">
+            <img id="spinImg" src="img/wheel.jpg" alt="" width="480" height="480" draggable="false">
+            <span id="spinBtnText" class="spin-hint">👆 그림을 눌러 시작</span>
+            <span id="spinPops" class="spin-pops" aria-hidden="true"></span>
           </button>
           <div class="spin-count"><span id="spinCount">0</span><small>가닥</small></div>
         </div>
+        <p id="spinPicNote" class="pic-note"></p>
+        <div id="spinYarn" class="yarn" aria-hidden="true"></div>
       </div>
       <div id="spinResult" class="bars" aria-live="polite"></div>
     </div>
@@ -117,8 +115,9 @@
       </div>
       <p id="loomRule" class="note"></p>
       <div class="workers" id="workers" aria-label="일할 사람"></div>
+      <p id="workerHow" class="note"></p>
       <div id="engineBox" class="engine-box" hidden>
-        <figure class="pic engine-pic"><img id="engineImg" alt="증기 기관 그림" width="480" height="480"><figcaption id="enginePicNote"></figcaption></figure>
+        <figure class="pic engine-pic"><img id="engineImg" src="img/engine.jpg" alt="증기 기관 그림" width="480" height="480"><figcaption id="enginePicNote"></figcaption></figure>
         <div class="engine-side">
           <div class="engine-title">⚙️ 증기 기관 <span class="engine-state"></span></div>
           <button id="engineBtn" class="btn btn-ghost btn-sm" type="button"></button>
@@ -156,10 +155,7 @@
       <h3 id="seaQ"></h3>
       <div id="seaPick" class="opt-list opt-row"></div>
       <button id="goBtn" class="btn wide"></button>
-      <div class="route" aria-hidden="true">
-        <div class="route-leg land"><span class="route-tag">공장</span><div class="track"><span id="landRunner" class="runner"></span></div><span class="route-tag">항구</span></div>
-        <div class="route-leg sea"><div class="track"><span id="seaRunner" class="runner"></span></div><span class="route-tag">먼 시장</span></div>
-      </div>
+      <div id="race" class="race" hidden></div>
       <p id="routeMsg" class="note" role="status"></p>
     </div>
     <div id="steamCard" class="card" hidden>

@@ -20,9 +20,10 @@ function threads(taps, perTap) {
   return Math.max(0, Math.floor(taps)) * perTap;
 }
 
-/* 2단: 방직기 — 동시에 돌릴 수 있는 최대 대수. 증기 기관이 없으면 사람 수만큼, 있으면 방직기 전부. */
-function loomLimit(steam, workers, looms) {
-  return steam ? looms : Math.min(workers, looms);
+/* 2단: 방직기 — 배치한 사람 수로 돌아가는 방직기 대수. 증기 기관이 없으면 한 사람이 1대,
+ * 증기 기관 공장에서는 한 사람이 loom.perWorkerSteam대를 살핀다. */
+function runningLooms(steam, staffed, loom) {
+  return Math.min(loom.looms, Math.max(0, staffed) * (steam ? loom.perWorkerSteam : 1));
 }
 
 /* 3단: 증기 기관 고르기 — 고른 id 목록이 정답 집합과 꼭 같은가 */
@@ -51,5 +52,5 @@ function moveItem(arr, i, d) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { wrongSlots, answerPlacement, threads, loomLimit, steamCorrect, wrongRoles, orderCorrect, moveItem };
+  module.exports = { wrongSlots, answerPlacement, threads, runningLooms, steamCorrect, wrongRoles, orderCorrect, moveItem };
 }

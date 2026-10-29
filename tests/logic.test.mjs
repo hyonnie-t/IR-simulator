@@ -10,7 +10,7 @@ const L = require("../logic.js");
 // data.js를 읽어 실제 데이터로도 검사한다(const 선언이라 끝에 꺼내는 줄을 붙인다)
 const ctx = {};
 vm.runInNewContext(fs.readFileSync(new URL("../data.js", import.meta.url), "utf8") +
-  ";this.D={STEP1,SLOTS,FACT_CARDS,STEAM_ITEMS,ROLE_CARDS,SPREAD,SPREAD_START,LOOM,SPINNERS};", ctx);
+  ";this.D={STEP1,SLOTS,FACT_CARDS,STEAM_ITEMS,ROLE_CARDS,SPREAD,SPREAD_START,LOOM,SPINNERS,VEHICLES};", ctx);
 const D = JSON.parse(JSON.stringify(ctx.D)); // vm 쪽 배열은 원형이 달라 deepEqual이 실패하므로 이쪽 객체로 옮긴다
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log("ok -", name); };
@@ -42,9 +42,15 @@ t("2단: 실 가닥 수", () => {
   assert.equal(L.threads(-3, 8), 0);
   assert.deepEqual(D.SPINNERS.map(s => s.perTap), [1, 8, 120]);
 });
-t("2단: 방직기 한도", () => {
-  assert.equal(L.loomLimit(false, D.LOOM.workers, D.LOOM.looms), 3);
-  assert.equal(L.loomLimit(true, D.LOOM.workers, D.LOOM.looms), 6);
+t("2단: 방직기 배치", () => {
+  const W = D.LOOM.workers;
+  assert.equal(L.runningLooms(false, W, D.LOOM), 3); // 증기 기관이 없으면 사람 수만큼
+  assert.equal(L.runningLooms(true, 2, D.LOOM), 6); // 증기 기관 공장은 2명으로 6대
+  assert.equal(L.runningLooms(true, W, D.LOOM), 6); // 사람이 더 있어도 6대가 끝
+  assert.ok(Math.ceil(D.LOOM.looms / D.LOOM.perWorkerSteam) < W); // 증기 기관 공장에서는 사람이 남는다
+});
+t("3단: 운송 그림 파일", () => {
+  [...D.VEHICLES.land, ...D.VEHICLES.sea].forEach(v => assert.ok(fs.existsSync(new URL("../" + v.img, import.meta.url)), v.img));
 });
 t("3단: 증기 기관 고르기", () => {
   assert.ok(L.steamCorrect(["s5", "s2", "s3"], D.STEAM_ITEMS));
