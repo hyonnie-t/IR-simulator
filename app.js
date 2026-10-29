@@ -935,29 +935,97 @@ async function submitAll() {
   }
   S.sending = false; S.submitted = true;
   unlockExamples();
+  if (S.share) saveRecord(); // 공유 모드: 아래에서 진행 기록을 지워도 완성한 글은 이 기기에 남긴다
   if (!S.preview) { // 미리보기는 기본 학번(20512)이라 그 학번 학생의 기기 기록을 지우지 않는다
     if (window.DraftGuard) DraftGuard.clear(); // 저장 성공 → 임시저장 삭제
     clearSave();
   }
   ["p1", "w1", "w2"].forEach(id => { $(id).readOnly = true; }); // 제출 뒤 수정 잠금
   renderSummary();
-  $("outMsg").textContent = S.preview ? "미리보기라 저장하지 않았어." : S.share ? (S.copied ? "마쳤어! 복사한 글을 선생님이 알려 준 곳에 올려 줘." : "마쳤어! 이제 글을 복사해서 선생님이 알려 준 곳에 올려 줘.") : (S.copied ? "제출했어! 복사한 글을 패들렛에 올려 줘." : "제출했어! 이제 글을 복사해서 패들렛에 올려 줘.");
+  $("outMsg").textContent = S.preview ? "미리보기라 저장하지 않았어." : S.share ? (S.copied ? "마쳤어! 복사한 글을 선생님이 알려 준 곳에 올려 줘. (이 기기에도 기록이 남았어.)" : "마쳤어! 이제 글을 복사해서 선생님이 알려 준 곳에 올려 줘. (이 기기에도 기록이 남았어.)") : (S.copied ? "제출했어! 복사한 글을 패들렛에 올려 줘." : "제출했어! 이제 글을 복사해서 패들렛에 올려 줘.");
 }
 
-async function copyOut() {
-  if (!S.gear || studentChars() < 1) { $("s5Err").textContent = "톱니바퀴를 고르고 글을 쓴 다음 복사해 줘."; return; }
-  const text = buildOutText();
-  let ok = false;
+async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
-    ok = true;
+    return true;
   } catch (e) {
     const ta = el("textarea");
     ta.value = text; ta.setAttribute("data-no-draft", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
     document.body.appendChild(ta); ta.select();
+    let ok = false;
     try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
     ta.remove();
+    return ok;
   }
+}
+
+/* ── 공유 모드: 마치기 뒤에도 이 기기에 남는 내 기록(백엔드 없이 브라우저 저장소만 쓴다) ── */
+const REC_PREFIX = "ir_simulator:record:";
+function saveRecord() {
+  try {
+    const ts = Date.now();
+    const rec = { sid: S.sid, name: S.name, gear: gearName(), guess: val("p1"), machine: val("w1"), writing: val("w2"), ts: ts };
+    localStorage.setItem(REC_PREFIX + S.sid + ":" + ts, JSON.stringify(rec));
+  } catch (e) { /* 저장소가 막히면 복사 글로만 남는다 */ }
+}
+function listRecords() {
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || k.indexOf(REC_PREFIX) !== 0) continue;
+      try { const r = JSON.parse(localStorage.getItem(k)); if (r && r.writing !== undefined) out.push({ key: k, rec: r }); } catch (e) { /* 깨진 기록은 건너뛴다 */ }
+    }
+  } catch (e) { /* 무시 */ }
+  return out.sort((a, b) => (b.rec.ts || 0) - (a.rec.ts || 0));
+}
+function recDate(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function renderRecords() {
+  const list = $("recList");
+  list.innerHTML = "";
+  const rows = listRecords();
+  $("recBtn").textContent = "내 기록 보기" + (rows.length ? " (" + rows.length + ")" : "");
+  if (!rows.length) { list.appendChild(el("p", "note", "아직 이 기기에 남은 기록이 없어.")); return; }
+  rows.forEach(r => {
+    const item = el("div", "rec-item");
+    item.appendChild(el("p", "rec-head", r.rec.sid + " " + r.rec.name + " · " + recDate(r.rec.ts)));
+    item.appendChild(el("p", "rec-line", "[고른 톱니바퀴] " + r.rec.gear));
+    if (r.rec.guess) item.appendChild(el("p", "rec-line", "처음 떠올린 것: " + r.rec.guess));
+    if (r.rec.machine) item.appendChild(el("p", "rec-line", "기계 한 줄: " + r.rec.machine));
+    item.appendChild(el("p", "rec-line", r.rec.writing));
+    const row = el("div", "btn-row rec-btns");
+    const cp = el("button", "btn btn-ghost btn-sm", "글 복사하기");
+    cp.type = "button";
+    cp.addEventListener("click", async () => {
+      const ok = await copyText(r.rec.sid + " " + r.rec.name + "\n[고른 톱니바퀴] " + r.rec.gear + "\n" + r.rec.writing);
+      cp.textContent = ok ? "복사했어" : "복사가 안 됐어";
+      setTimeout(() => { cp.textContent = "글 복사하기"; }, 1500);
+    });
+    const del = el("button", "btn btn-ghost btn-sm", "이 기록 지우기");
+    del.type = "button";
+    del.addEventListener("click", () => {
+      if (!confirm("이 기록을 이 기기에서 지울까? 되돌릴 수 없어.")) return;
+      try { localStorage.removeItem(r.key); } catch (e) { /* 무시 */ }
+      renderRecords();
+    });
+    row.appendChild(cp); row.appendChild(del);
+    item.appendChild(row);
+    list.appendChild(item);
+  });
+}
+function toggleRecords() {
+  const box = $("recBox");
+  box.hidden = !box.hidden;
+  if (!box.hidden) { renderRecords(); box.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+}
+
+async function copyOut() {
+  if (!S.gear || studentChars() < 1) { $("s5Err").textContent = "톱니바퀴를 고르고 글을 쓴 다음 복사해 줘."; return; }
+  const ok = await copyText(buildOutText());
   if (!ok) { $("outMsg").textContent = "복사가 안 됐어. 한 번 더 눌러 줘."; return; }
   S.copied = true;
   $("outMsg").textContent = S.submitted ? (S.share ? "복사했어. 선생님이 알려 준 곳에 붙여넣기 해." : "복사했어. 패들렛에 붙여넣기 해.") : (S.share ? "복사했어. 마치기 버튼도 눌러 줘!" : "복사했어. 제출 버튼도 꼭 눌러 줘!");
@@ -1005,6 +1073,8 @@ function init() {
     $("sid").setAttribute("maxlength", "12");
     $("sid").removeAttribute("inputmode");
     $("exampleLock").textContent = "글을 다 쓰고 마치면 예시 글을 볼 수 있어.";
+    $("recBtn").hidden = false; renderRecords();
+    $("recBtn").addEventListener("click", toggleRecords);
   }
   $("sid").value = sid; $("sname").value = name;
 

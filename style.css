@@ -294,3 +294,8 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
   .opt-row .opt{flex-basis:100%}
   .nav .btn-ghost{flex-basis:28%}
 }
+.rec-open{margin-top:10px}
+.rec-item{border-top:1px solid var(--line);padding:14px 0}
+.rec-head{font:700 1rem var(--sans);margin:0 0 6px}
+.rec-line{margin:4px 0;white-space:pre-wrap;word-break:break-word}
+.rec-btns{margin-top:10px}
