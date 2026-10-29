@@ -8,6 +8,13 @@ function wrongSlots(placed, cards, slots) {
   });
 }
 
+/* 1단: 정해진 횟수만큼 틀리면 정답을 보여 주고 넘어간다. 정답 배치 { 칸id: 카드id } */
+function answerPlacement(cards) {
+  const out = {};
+  cards.forEach(c => { out[c.slot] = c.id; });
+  return out;
+}
+
 /* 2단: 실 뽑기 — 누른 횟수 × 한 번에 뽑는 가닥 수 */
 function threads(taps, perTap) {
   return Math.max(0, Math.floor(taps)) * perTap;
@@ -44,5 +51,5 @@ function moveItem(arr, i, d) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { wrongSlots, threads, loomLimit, steamCorrect, wrongRoles, orderCorrect, moveItem };
+  module.exports = { wrongSlots, answerPlacement, threads, loomLimit, steamCorrect, wrongRoles, orderCorrect, moveItem };
 }

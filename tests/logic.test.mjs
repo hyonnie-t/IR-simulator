@@ -10,7 +10,7 @@ const L = require("../logic.js");
 // data.js를 읽어 실제 데이터로도 검사한다(const 선언이라 끝에 꺼내는 줄을 붙인다)
 const ctx = {};
 vm.runInNewContext(fs.readFileSync(new URL("../data.js", import.meta.url), "utf8") +
-  ";this.D={SLOTS,FACT_CARDS,STEAM_ITEMS,ROLE_CARDS,SPREAD,SPREAD_START,LOOM,SPINNERS};", ctx);
+  ";this.D={STEP1,SLOTS,FACT_CARDS,STEAM_ITEMS,ROLE_CARDS,SPREAD,SPREAD_START,LOOM,SPINNERS};", ctx);
 const D = JSON.parse(JSON.stringify(ctx.D)); // vm 쪽 배열은 원형이 달라 deepEqual이 실패하므로 이쪽 객체로 옮긴다
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log("ok -", name); };
@@ -26,6 +26,16 @@ t("1단: 빈 칸·바뀐 칸은 틀림", () => {
 t("1단: 카드마다 칸이 하나씩, 칸마다 카드가 하나씩", () => {
   assert.equal(new Set(D.FACT_CARDS.map(c => c.slot)).size, D.SLOTS.length);
   D.FACT_CARDS.forEach(c => assert.ok(D.SLOTS.some(s => s.id === c.slot)));
+});
+t("1단: 세 번 틀린 뒤 보여 주는 정답 배치는 틀린 칸 0", () => {
+  assert.equal(D.STEP1.maxTries, 3);
+  assert.deepEqual(L.wrongSlots(L.answerPlacement(D.FACT_CARDS), D.FACT_CARDS, D.SLOTS), []);
+});
+t("예시 문구(placeholder)에 1단 칸 이름이 들어가지 않는다", () => {
+  D.SLOTS.forEach(sl => sl.name.split(" ").filter(w => w.length > 1).forEach(w => assert.ok(!D.STEP1.guessPh.includes(w), w)));
+});
+t("2단: 도구마다 그림 파일이 있다", () => {
+  D.SPINNERS.forEach(sp => assert.ok(fs.existsSync(new URL("../" + sp.img, import.meta.url)), sp.img));
 });
 t("2단: 실 가닥 수", () => {
   assert.equal(L.threads(5, 120), 600);

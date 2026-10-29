@@ -57,8 +57,11 @@
       <h3 id="s1MatchQ" class="first"></h3>
       <p id="s1How" class="note"></p>
       <details class="hint"><summary>💡 막막하면 힌트 보기</summary><p id="s1Hint"></p></details>
-      <div id="slotList" class="slot-list"></div>
-      <h3>문장 카드</h3>
+      <div class="tray">
+        <div class="tray-label">공장에 필요한 것 꼬리표</div>
+        <div id="slotList" class="tag-list"></div>
+      </div>
+      <div class="fact-label">교과서 160쪽 문장 카드</div>
       <div id="factList" class="fact-list"></div>
       <p id="s1Msg" class="err" role="alert"></p>
       <button id="s1Check" class="btn wide">맞춰 보기</button>
@@ -87,8 +90,13 @@
       <p id="s2Rule" class="note"></p>
       <div id="spinTabs" class="spin-tabs"></div>
       <div class="spin-stage">
-        <div id="spinName" class="spin-name"></div>
-        <p id="spinCap" class="spin-cap"></p>
+        <div class="spin-head">
+          <figure class="pic spin-pic"><img id="spinImg" src="img/wheel.jpg" alt="" width="480" height="480"><figcaption id="spinPicNote"></figcaption></figure>
+          <div>
+            <div id="spinName" class="spin-name"></div>
+            <p id="spinCap" class="spin-cap"></p>
+          </div>
+        </div>
         <div class="spin-row">
           <div class="spin-clock"><span id="spinTime">10.0</span><small>초</small></div>
           <button id="spinBtn" class="spin-btn" aria-label="도구 돌리기">
@@ -109,6 +117,14 @@
       </div>
       <p id="loomRule" class="note"></p>
       <div class="workers" id="workers" aria-label="일할 사람"></div>
+      <div id="engineBox" class="engine-box" hidden>
+        <figure class="pic engine-pic"><img id="engineImg" alt="증기 기관 그림" width="480" height="480"><figcaption id="enginePicNote"></figcaption></figure>
+        <div class="engine-side">
+          <div class="engine-title">⚙️ 증기 기관 <span class="engine-state"></span></div>
+          <button id="engineBtn" class="btn btn-ghost btn-sm" type="button"></button>
+        </div>
+        <div class="power-line" aria-hidden="true">힘 ↓ 축과 벨트를 따라 방직기로</div>
+      </div>
       <div id="loomGrid" class="loom-grid"></div>
       <p id="loomMsg" class="note" role="status"></p>
     </div>
