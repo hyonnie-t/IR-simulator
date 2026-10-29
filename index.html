@@ -42,6 +42,12 @@
       <input id="sname" autocomplete="off">
       <p id="startErr" class="err" role="alert"></p>
       <button id="startBtn" class="btn wide">공장 세우러 가기</button>
+      <button id="recBtn" type="button" class="btn btn-ghost wide rec-open" hidden>내 기록 보기</button>
+    </div>
+    <div id="recBox" class="card" hidden>
+      <p class="lead">이 기기에 남은 기록</p>
+      <p class="note">이 브라우저에만 저장돼 있어. 다른 기기에서는 안 보이고, 브라우저 기록을 지우면 사라져.</p>
+      <div id="recList"></div>
     </div>
   </section>
 
