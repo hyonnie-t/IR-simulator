@@ -1,618 +1,241 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>19세기 산업 혁명: 도시 인구 집중 시뮬레이터</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts (Noto Sans KR, Black Han Sans) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: #f2ebd9; /* 옛날 종이 느낌의 따뜻한 베이지 */
-        }
-        .historical-font {
-            font-family: 'Black Han Sans', sans-serif;
-        }
-        /* 공장 연기 애니메이션 */
-        @keyframes smoke {
-            0% { transform: translateY(0) scale(0.8) rotate(0deg); opacity: 0; }
-            50% { opacity: 0.6; }
-            100% { transform: translateY(-60px) scale(1.5) rotate(45deg); opacity: 0; }
-        }
-        .smoke-particle {
-            animation: smoke 2s infinite linear;
-        }
-        /* 맥박 효과 */
-        @keyframes pulse-slow {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        .pulse-active {
-            animation: pulse-slow 1.5s infinite ease-in-out;
-        }
-    </style>
+<meta charset="UTF-8">
+<!-- 포털 로그인 세션 자동 첨부(history26 v83) -->
+<script src="https://hyonnie-t.github.io/history26/snippets/portal_auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>면직물 공장을 세워라!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
-<body class="min-h-screen p-4 md:p-6 flex flex-col justify-between">
+<body>
+<div id="previewBar" class="preview-bar" hidden>미리보기 모드 — 저장되지 않아</div>
+<main class="page">
+  <header class="book-head">
+    <div class="eyebrow">세계사 주제33 · 산업화와 사회 변화</div>
+    <h1 id="appTitle"></h1>
+    <ol id="steps" class="steps" aria-label="진행 단계" hidden>
+      <li data-k="ready">준비</li>
+      <li data-k="machine">기계</li>
+      <li data-k="move">운송</li>
+      <li data-k="society">새 사회</li>
+      <li data-k="wrap">마무리</li>
+    </ol>
+  </header>
 
-    <!-- 상단 헤더 -->
-    <header class="bg-[#2c241e] text-[#f2ebd9] rounded-2xl p-5 shadow-lg border-b-4 border-[#8c2d19] mb-6">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="text-center md:text-left">
-                <span class="bg-[#8c2d19] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">중학교 2학년 세계사 수업용</span>
-                <h1 class="historical-font text-3xl md:text-4xl mt-1 tracking-wide">⚙️ 19세기 산업 혁명기: 도시 인구 집중 시뮬레이터</h1>
-                <p class="text-sm text-gray-300 mt-1">일자리와 주거비를 조절하여 농촌 사람들이 왜 도시로 이주했는지, 그리고 어떤 사회 문제가 생겼는지 알아봅시다!</p>
-            </div>
-            <!-- 년도/시간 컨트롤러 -->
-            <div class="bg-[#1e1915] p-3 rounded-xl border border-gray-700 flex items-center gap-4">
-                <div class="text-center">
-                    <div class="text-xs text-gray-400">가상 역사 시간</div>
-                    <div class="text-xl font-bold text-yellow-400 font-mono" id="time-display">1800년 01월</div>
-                </div>
-                <button id="btn-play-pause" onclick="togglePlay()" class="bg-[#8c2d19] hover:bg-[#b03a22] text-white px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2">
-                    <i id="play-icon" class="fa-solid fa-play"></i> <span id="play-text">시간 흐르게 하기</span>
-                </button>
-            </div>
+  <!-- S0 도입 -->
+  <section id="s0" class="screen">
+    <div class="card">
+      <p id="introQ" class="lead"></p>
+      <blockquote class="textbook">
+        <div id="coreLabel" class="box-label"></div>
+        <p id="coreText"></p>
+      </blockquote>
+    </div>
+    <div class="card">
+      <label for="sid">학번 (5자리, 예: 20512)</label>
+      <input id="sid" inputmode="numeric" maxlength="5" autocomplete="off">
+      <label for="sname">이름</label>
+      <input id="sname" autocomplete="off">
+      <p id="startErr" class="err" role="alert"></p>
+      <button id="startBtn" class="btn wide">공장 세우러 가기</button>
+    </div>
+  </section>
+
+  <!-- S1 준비: 공장에 필요한 것 (160쪽) -->
+  <section id="s1" class="screen" hidden>
+    <div class="card">
+      <div class="progress">1/4</div>
+      <h2 id="s1Q"></h2>
+      <label for="p1" id="s1GuessQ" class="q first"></label>
+      <textarea id="p1" rows="1"></textarea>
+    </div>
+    <div class="card">
+      <h3 id="s1MatchQ" class="first"></h3>
+      <p id="s1How" class="note"></p>
+      <details class="hint"><summary>💡 막막하면 힌트 보기</summary><p id="s1Hint"></p></details>
+      <div id="slotList" class="slot-list"></div>
+      <h3>문장 카드</h3>
+      <div id="factList" class="fact-list"></div>
+      <p id="s1Msg" class="err" role="alert"></p>
+      <button id="s1Check" class="btn wide">맞춰 보기</button>
+    </div>
+    <div id="s1Done" class="card" hidden>
+      <blockquote class="textbook">
+        <div id="s1DoneLabel" class="box-label"></div>
+        <p id="s1DoneText"></p>
+      </blockquote>
+      <div class="sub-box">
+        <div id="encLabel" class="box-label"></div>
+        <p id="encText"></p>
+      </div>
+    </div>
+    <div class="btn-row nav">
+      <button id="s1Next" class="btn" disabled>다음: 기계 들이기</button>
+    </div>
+    <p id="s1Err" class="err" role="alert"></p>
+  </section>
+
+  <!-- S2 기계: 실 뽑기 + 방직기 (161쪽) -->
+  <section id="s2" class="screen" hidden>
+    <div class="card">
+      <div class="progress">2/4</div>
+      <p id="s2Q" class="lead"></p>
+      <p id="s2Rule" class="note"></p>
+      <div id="spinTabs" class="spin-tabs"></div>
+      <div class="spin-stage">
+        <div id="spinName" class="spin-name"></div>
+        <p id="spinCap" class="spin-cap"></p>
+        <div class="spin-row">
+          <div class="spin-clock"><span id="spinTime">10.0</span><small>초</small></div>
+          <button id="spinBtn" class="spin-btn" aria-label="도구 돌리기">
+            <svg viewBox="0 0 100 100" aria-hidden="true" id="spinWheel"><circle cx="50" cy="50" r="42" class="wheel-rim"/><g class="wheel-spokes"><line x1="50" y1="8" x2="50" y2="92"/><line x1="8" y1="50" x2="92" y2="50"/><line x1="20" y1="20" x2="80" y2="80"/><line x1="80" y1="20" x2="20" y2="80"/></g><circle cx="50" cy="50" r="9" class="wheel-hub"/></svg>
+            <span id="spinBtnText">눌러서 시작</span>
+          </button>
+          <div class="spin-count"><span id="spinCount">0</span><small>가닥</small></div>
         </div>
-    </header>
-
-    <!-- 메인 대시보드 -->
-    <main class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
-
-        <!-- 왼쪽: 조작 슬라이더 및 미션 (5열) -->
-        <div class="lg:col-span-5 flex flex-col gap-6">
-            
-            <!-- 슬라이더 제어 패널 -->
-            <section class="bg-white rounded-2xl p-6 shadow-md border-2 border-[#d0c4af] flex flex-col gap-6">
-                <h2 class="text-xl font-bold text-[#2c241e] border-b-2 border-gray-100 pb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-sliders text-[#8c2d19]"></i> 정책 연구원 조작대
-                </h2>
-
-                <!-- 슬라이더 1: 일자리 -->
-                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <div class="flex justify-between items-center mb-2">
-                        <label class="font-bold text-blue-900 text-lg flex items-center gap-2">
-                            🏭 일자리 수 (공장 건설 대수)
-                        </label>
-                        <span id="jobs-val-display" class="bg-blue-600 text-white font-bold px-3 py-1 rounded-full font-mono text-lg">30개</span>
-                    </div>
-                    <p class="text-xs text-blue-700 mb-3">공장을 많이 지을수록 농촌의 일용직 노동자들이 도시로 몰려옵니다.</p>
-                    <input type="range" id="slider-jobs" min="0" max="100" value="30" oninput="updateSimulationValues()" class="w-full h-3 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-                    <div class="flex justify-between text-xs text-blue-500 mt-1 font-mono">
-                        <span>공장 없음 (0)</span>
-                        <span>대규모 공업단지 (100)</span>
-                    </div>
-                </div>
-
-                <!-- 슬라이더 2: 주거비 -->
-                <div class="bg-red-50 p-4 rounded-xl border border-red-100">
-                    <div class="flex justify-between items-center mb-2">
-                        <label class="font-bold text-red-900 text-lg flex items-center gap-2">
-                            🪙 주거비 (도시 월세 및 방값)
-                        </label>
-                        <span id="housing-val-display" class="bg-red-600 text-white font-bold px-3 py-1 rounded-full font-mono text-lg">20실링</span>
-                    </div>
-                    <p class="text-xs text-red-700 mb-3">집값이 너무 비싸지면 사람들은 방을 구하지 못해 빈민가로 밀려납니다.</p>
-                    <input type="range" id="slider-housing" min="10" max="100" value="20" oninput="updateSimulationValues()" class="w-full h-3 bg-red-200 rounded-lg appearance-none cursor-pointer accent-red-600">
-                    <div class="flex justify-between text-xs text-red-500 mt-1 font-mono">
-                        <span>매우 저렴 (10)</span>
-                        <span>살인적인 주거비 (100)</span>
-                    </div>
-                </div>
-
-                <!-- 간편 프리셋 설정 (학생들이 원클릭으로 쉽게 상황을 관찰할 수 있음) -->
-                <div>
-                    <h3 class="text-sm font-semibold text-gray-500 mb-2">📜 역사적 주요 장면 바로 실행하기</h3>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button onclick="setPreset(10, 15)" class="bg-[#eae5d8] hover:bg-[#2c241e] hover:text-white text-gray-800 text-xs font-bold py-2 px-1 rounded-lg transition-all border border-gray-300">
-                            🌾 산업화 이전 농촌
-                        </button>
-                        <button onclick="setPreset(85, 25)" class="bg-[#eae5d8] hover:bg-[#2c241e] hover:text-white text-gray-800 text-xs font-bold py-2 px-1 rounded-lg transition-all border border-gray-300">
-                            ⚙️ 증기기관 공장 급증
-                        </button>
-                        <button onclick="setPreset(90, 85)" class="bg-[#eae5d8] hover:bg-[#2c241e] hover:text-white text-gray-800 text-xs font-bold py-2 px-1 rounded-lg transition-all border border-gray-300">
-                            🏚️ 빈민가(슬럼) 대확산
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 퀘스트 북 -->
-            <section class="bg-[#2c241e] text-[#f2ebd9] rounded-2xl p-5 shadow-md border-t-4 border-yellow-500">
-                <h2 class="text-lg font-bold text-yellow-400 mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-book-open"></i> 세계사 도전 미션!
-                </h2>
-                <div class="flex flex-col gap-3">
-                    <!-- 미션 1 -->
-                    <div id="mission-1-card" class="flex items-start gap-3 bg-[#1e1915] p-3 rounded-xl border border-gray-700">
-                        <div class="mt-1" id="m1-status-icon">
-                            <i class="fa-regular fa-square text-gray-400 text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-sm text-yellow-100">미션 1: 신도시 개척!</h3>
-                            <p class="text-xs text-gray-400">도시 인구 비율을 60% 이상으로 끌어올리세요.</p>
-                        </div>
-                    </div>
-                    <!-- 미션 2 -->
-                    <div id="mission-2-card" class="flex items-start gap-3 bg-[#1e1915] p-3 rounded-xl border border-gray-700">
-                        <div class="mt-1" id="m2-status-icon">
-                            <i class="fa-regular fa-square text-gray-400 text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-sm text-yellow-100">미션 2: 살기 좋은 복지 도시 만들기</h3>
-                            <p class="text-xs text-gray-400">도시 인구 7만 명 이상인 상황에서 슬럼가 위기를 20% 이하로 제어하세요.</p>
-                        </div>
-                    </div>
-                </div>
-                <!-- 초기화 버튼 -->
-                <button onclick="resetSimulation()" class="w-full mt-4 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-xl text-sm font-bold transition-all">
-                    🔄 시뮬레이션 처음부터 다시 시작
-                </button>
-            </section>
-        </div>
-
-        <!-- 오른쪽: 모니터 및 결과 리포트 (7열) -->
-        <div class="lg:col-span-7 flex flex-col gap-6">
-
-            <!-- 실시간 상태 및 인구 바 그래프 -->
-            <section class="bg-white rounded-2xl p-6 shadow-md border-2 border-[#d0c4af] flex flex-col gap-6">
-                
-                <!-- 실시간 수치 요약 -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
-                        <div class="text-xs text-gray-500 font-bold">🌾 농촌 거주 인구</div>
-                        <div class="text-xl font-black text-green-700 mt-1 font-mono" id="rural-pop-display">85,000명</div>
-                    </div>
-                    <div class="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center">
-                        <div class="text-xs text-blue-500 font-bold">🏭 도시 거주 인구</div>
-                        <div class="text-xl font-black text-blue-700 mt-1 font-mono" id="urban-pop-display">15,000명</div>
-                    </div>
-                    <div class="bg-orange-50 p-3 rounded-xl border border-orange-100 text-center">
-                        <div class="text-xs text-orange-500 font-bold">📈 월간 도시 유입량</div>
-                        <div class="text-xl font-black text-orange-700 mt-1 font-mono" id="flow-rate-display">+150명</div>
-                    </div>
-                    <div class="bg-red-50 p-3 rounded-xl border border-red-100 text-center">
-                        <div class="text-xs text-red-500 font-bold">☠️ 슬럼가 위험도</div>
-                        <div class="text-xl font-black text-red-700 mt-1 font-mono" id="slum-level-display">0%</div>
-                    </div>
-                </div>
-
-                <!-- 농촌 vs 도시 인구 비교 막대그래프 -->
-                <div>
-                    <h3 class="text-sm font-semibold text-gray-500 mb-3">📊 전체 인구 비중 (농촌 vs 도시)</h3>
-                    <div class="w-full bg-gray-200 h-8 rounded-full overflow-hidden flex shadow-inner relative">
-                        <!-- 농촌 비중 바 -->
-                        <div id="bar-rural" class="bg-green-600 h-full transition-all duration-500 flex items-center justify-center text-white font-bold text-xs" style="width: 85%;">
-                            농촌 (<span id="pct-rural">85</span>%)
-                        </div>
-                        <!-- 도시 비중 바 -->
-                        <div id="bar-urban" class="bg-blue-600 h-full transition-all duration-500 flex items-center justify-center text-white font-bold text-xs" style="width: 15%;">
-                            도시 (<span id="pct-urban">15</span>%)
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 도시 상황 비주얼 맵 (상황에 맞게 그래픽 요소들이 실시간 배치됨) -->
-                <div>
-                    <h3 class="text-sm font-semibold text-gray-500 mb-2">🏘️ 도시 상태 시각화 모니터</h3>
-                    <div class="relative bg-gradient-to-b from-sky-100 to-amber-100 border-2 border-gray-300 rounded-xl h-44 overflow-hidden shadow-inner">
-                        
-                        <!-- 하늘 구름 & 연기 및 태양 -->
-                        <div id="sky-sun" class="absolute top-4 right-8 text-4xl text-amber-500"><i class="fa-solid fa-sun"></i></div>
-                        
-                        <!-- 공장 연기들이 올라올 구역 (동적 생성용) -->
-                        <div id="smoke-area" class="absolute inset-0 pointer-events-none z-10"></div>
-
-                        <!-- 풍경 레이어: 농촌 영역 (왼쪽) -->
-                        <div class="absolute left-0 bottom-0 w-1/3 h-16 bg-emerald-800 rounded-tr-full opacity-80 flex items-end p-2 text-white font-bold text-xs">
-                            <span class="flex items-center gap-1"><i class="fa-solid fa-wheat-awn"></i> 평화로운 옛 농촌</span>
-                        </div>
-                        <div id="rural-visual-icons" class="absolute left-6 bottom-8 text-2xl flex gap-2">
-                            🌾 🐄 🏡
-                        </div>
-
-                        <!-- 풍경 레이어: 도시 공장 영역 (오른쪽) -->
-                        <div class="absolute right-0 bottom-0 w-2/3 h-20 bg-slate-700 opacity-90 rounded-tl-3xl flex flex-col justify-end p-2 text-[#f2ebd9] font-bold text-xs">
-                            <span class="flex items-center gap-1"><i class="fa-solid fa-industry"></i> 19세기 산업도시 맨체스터</span>
-                        </div>
-                        
-                        <!-- 공장 건물 아이콘 및 슬럼가 텐트 아이콘 동적 배치 -->
-                        <div id="factory-visual-container" class="absolute right-8 bottom-10 flex gap-4 text-3xl">
-                            <!-- 공장 아이콘이 일자리 수에 맞춰 늘어남 -->
-                        </div>
-
-                        <!-- 슬럼가 판자촌 동적 배치 -->
-                        <div id="slum-visual-container" class="absolute left-1/3 right-1/4 bottom-0 flex flex-wrap gap-1 z-20 text-xl justify-center">
-                            <!-- 집값 폭등 및 과밀 시 지저분한 이모지들이 우글우글해짐 -->
-                        </div>
-                    </div>
-                </div>
-
-            </section>
-
-            <!-- 19세기 영국 헤드라인 신문 리포트 -->
-            <section class="bg-[#f0ece1] rounded-2xl p-6 shadow-md border-4 border-double border-[#5c4a3c] flex flex-col gap-4">
-                <div class="flex justify-between items-center border-b-2 border-[#5c4a3c] pb-2">
-                    <span class="font-serif italic font-bold text-gray-700">THE MANCHESTER CHRONICLE</span>
-                    <span class="text-xs text-gray-600 font-mono" id="news-date">1800년 1월 1일 발행</span>
-                </div>
-                <div>
-                    <h2 class="historical-font text-2xl text-red-900 leading-snug" id="news-headline">
-                        "고요한 영국 농촌, 기계 소리와 함께 서서히 잠에서 깨어나다"
-                    </h2>
-                    <p class="text-sm text-gray-700 mt-2 leading-relaxed" id="news-content">
-                        방적기와 증기 기관의 등장으로 고향을 떠나 도시의 공장으로 유입되는 농촌 청년들이 생겨나고 있습니다. 아직은 대다수의 백성들이 평화로운 농경 생활을 영위하고 있으나, 향후 거대한 이촌향도 변화의 바람이 도래할 것인지 귀추가 주목되는 시점입니다.
-                    </p>
-                </div>
-                <div class="bg-white/60 p-3 rounded-lg border border-[#c7baa2]">
-                    <div class="text-xs font-bold text-amber-900"><i class="fa-solid fa-circle-info"></i> 역사 탐구 가이드</div>
-                    <p class="text-xs text-amber-800 mt-1" id="history-quiz-tip">
-                        일자리를 최소 60 이상으로 올리고 한 달만 시간을 흐르게 해 보세요! 농민들이 왜 도시로 떠나게 되는지 기사를 보고 직접 기록해 봅시다.
-                    </p>
-                </div>
-            </section>
-
-        </div>
-
-    </main>
-
-    <!-- 하단 푸터 / 안내 -->
-    <footer class="mt-6 text-center text-xs text-gray-600 border-t border-gray-300 pt-4">
-        <p>본 역사 교육용 웹앱은 중학교 역사 교과과정의 '산업 혁명과 자본주의의 발달' 단원 수업 자료를 위해 제작되었습니다.</p>
-        <p class="mt-1">© 1800-1850 Manchester Virtual Museum. Built with HTML5 & JavaScript.</p>
-    </footer>
-
-    <!-- 효과음 알림 레이어 -->
-    <div id="toast" class="fixed bottom-6 right-6 bg-green-900 text-white font-bold py-3 px-6 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none flex items-center gap-3">
-        <i class="fa-solid fa-trophy text-yellow-400 text-xl"></i>
-        <span id="toast-msg">미션 성공!</span>
+      </div>
+      <div id="spinResult" class="bars" aria-live="polite"></div>
     </div>
 
-    <!-- 시뮬레이션 핵심 스크립트 -->
-    <script>
-        // 시뮬레이터 데이터 상태
-        let jobs = 30;
-        let housing = 20;
+    <div id="loomCard" class="card" hidden>
+      <h3 id="loomQ" class="first"></h3>
+      <div class="loom-switch" role="radiogroup" aria-label="공장 종류">
+        <div class="opt" role="radio" tabindex="0" id="loomHand" aria-checked="true"><span class="opt-box"></span><span class="opt-text">증기 기관이 없는 공장</span></div>
+        <div class="opt" role="radio" tabindex="0" id="loomSteam" aria-checked="false"><span class="opt-box"></span><span class="opt-text">증기 기관 공장</span></div>
+      </div>
+      <p id="loomRule" class="note"></p>
+      <div class="workers" id="workers" aria-label="일할 사람"></div>
+      <div id="loomGrid" class="loom-grid"></div>
+      <p id="loomMsg" class="note" role="status"></p>
+    </div>
 
-        let totalPop = 100000;
-        let ruralPop = 85000;
-        let urbanPop = 15000;
+    <div id="s2Done" class="card" hidden>
+      <blockquote class="textbook">
+        <div id="s2DoneLabel" class="box-label"></div>
+        <p id="s2DoneText"></p>
+      </blockquote>
+      <label for="w1" id="s2WriteQ" class="q"></label>
+      <details class="hint"><summary>💡 막막하면 힌트 보기</summary><p id="s2Hint"></p></details>
+      <textarea id="w1" rows="2"></textarea>
+      <div class="count" id="w1c"></div>
+    </div>
+    <div class="btn-row nav">
+      <button id="s2Back" class="btn btn-ghost">이전</button>
+      <button id="s2Next" class="btn" disabled>다음: 천 보내기</button>
+    </div>
+    <p id="s2Err" class="err" role="alert"></p>
+  </section>
 
-        let year = 1800;
-        let month = 1;
+  <!-- S3 운송 (161쪽) -->
+  <section id="s3" class="screen" hidden>
+    <div class="card">
+      <div class="progress">3/4</div>
+      <p id="s3Q" class="lead"></p>
+      <h3 id="landQ" class="first"></h3>
+      <div id="landPick" class="opt-list opt-row"></div>
+      <h3 id="seaQ"></h3>
+      <div id="seaPick" class="opt-list opt-row"></div>
+      <button id="goBtn" class="btn wide"></button>
+      <div class="route" aria-hidden="true">
+        <div class="route-leg land"><span class="route-tag">공장</span><div class="track"><span id="landRunner" class="runner"></span></div><span class="route-tag">항구</span></div>
+        <div class="route-leg sea"><div class="track"><span id="seaRunner" class="runner"></span></div><span class="route-tag">먼 시장</span></div>
+      </div>
+      <p id="routeMsg" class="note" role="status"></p>
+    </div>
+    <div id="steamCard" class="card" hidden>
+      <h3 id="steamQ" class="first"></h3>
+      <details class="hint"><summary>💡 막막하면 힌트 보기</summary><p id="s3Hint"></p></details>
+      <div id="steamList" class="opt-list"></div>
+      <p id="steamMsg" class="err" role="alert"></p>
+      <button id="steamCheck" class="btn wide">확인</button>
+    </div>
+    <div id="s3Done" class="card" hidden>
+      <blockquote class="textbook">
+        <div id="s3DoneLabel" class="box-label"></div>
+        <p id="s3DoneText"></p>
+      </blockquote>
+    </div>
+    <div class="btn-row nav">
+      <button id="s3Back" class="btn btn-ghost">이전</button>
+      <button id="s3Next" class="btn" disabled>다음: 새로운 사회</button>
+    </div>
+  </section>
 
-        let isPlaying = false;
-        let timerId = null;
+  <!-- S4 새 사회 (162쪽) -->
+  <section id="s4" class="screen" hidden>
+    <div class="card">
+      <div class="progress">4/4</div>
+      <p id="s4Q" class="lead"></p>
+      <details class="hint"><summary>💡 막막하면 힌트 보기</summary><p id="s4Hint"></p></details>
+      <div id="roleList" class="role-list"></div>
+      <p id="roleMsg" class="err" role="alert"></p>
+      <button id="roleCheck" class="btn wide">확인</button>
+    </div>
+    <div id="orderCard" class="card" hidden>
+      <h3 id="orderQ" class="first"></h3>
+      <ol id="orderList" class="order-list"></ol>
+      <p id="orderMsg" class="err" role="alert"></p>
+      <button id="orderCheck" class="btn wide">확인</button>
+    </div>
+    <div id="s4Done" class="card" hidden>
+      <blockquote class="textbook">
+        <div id="s4DoneLabel" class="box-label"></div>
+        <p id="s4DoneText"></p>
+        <p id="s4DoneSpread"></p>
+      </blockquote>
+    </div>
+    <div class="btn-row nav">
+      <button id="s4Back" class="btn btn-ghost">이전</button>
+      <button id="s4Next" class="btn" disabled>다음: 마무리 글</button>
+    </div>
+  </section>
 
-        // 퀘스트 완료 상태
-        let m1Completed = false;
-        let m2Completed = false;
-
-        // 효과음 재생용 오디오 컨텍스트 (브라우저 내장 신디사이저 사용)
-        let audioCtx = null;
-
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-        }
-
-        // 효과음 생성기 (간단한 비프음)
-        function playSound(type) {
-            try {
-                initAudio();
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                if (type === 'success') {
-                    // 성공음 (띠링~)
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15); // E5
-                    osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.3); // G5
-                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.5);
-                } else if (type === 'click') {
-                    // 클릭음 (똑)
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.08);
-                } else if (type === 'danger') {
-                    // 경고음 (삐빅)
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-                    osc.frequency.setValueAtTime(220, audioCtx.currentTime + 0.15);
-                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.3);
-                }
-            } catch (e) {
-                console.log("Audio play failed, user gesture needed first.", e);
-            }
-        }
-
-        // 실시간 값 업데이트 (슬라이더 및 수치)
-        function updateSimulationValues() {
-            jobs = parseInt(document.getElementById('slider-jobs').value);
-            housing = parseInt(document.getElementById('slider-housing').value);
-
-            document.getElementById('jobs-val-display').innerText = jobs + "개";
-            document.getElementById('housing-val-display').innerText = housing + "실링";
-
-            recalculateFlowRate();
-            updateVisuals();
-        }
-
-        // 월간 인구 유입률 계산식
-        // 일자리가 늘수록 유입량이 크고, 주거비가 높으면 유입을 억제하며 나아가 이탈을 유도함
-        function recalculateFlowRate() {
-            // 이주 수식 설계 (교육 목적에 부합하게 명확한 영향력을 갖도록 설계)
-            const pullForce = jobs * 200;
-            const pushForce = housing * 150;
-            let netFlow = pullForce - pushForce;
-
-            // 약간의 보정 (농촌에 사람이 아예 없으면 더이상 안 옴)
-            if (ruralPop <= 0 && netFlow > 0) {
-                netFlow = 0;
-            }
-
-            const sign = netFlow >= 0 ? "+" : "";
-            document.getElementById('flow-rate-display').innerText = sign + netFlow.toLocaleString() + "명";
-            
-            // 실시간 슬럼가 위험도 계산
-            // 공식: (도시 인구 밀집도 가중치) x (높은 주거비 수준)
-            let rawSlum = 0;
-            if (urbanPop > 25000) {
-                rawSlum = (urbanPop / 1000) * (housing / 25);
-            }
-            let slumLevel = Math.min(100, Math.max(0, Math.round(rawSlum)));
-            document.getElementById('slum-level-display').innerText = slumLevel + "%";
-
-            return { netFlow, slumLevel };
-        }
-
-        // 시뮬레이션 한 턴(한 달) 진행
-        function simulationStep() {
-            const { netFlow, slumLevel } = recalculateFlowRate();
-
-            // 인구 이동 적용
-            if (netFlow > 0) {
-                let actualMove = Math.min(netFlow, ruralPop);
-                ruralPop -= actualMove;
-                urbanPop += actualMove;
-            } else if (netFlow < 0) {
-                let actualMove = Math.min(Math.abs(netFlow), urbanPop);
-                ruralPop += actualMove;
-                urbanPop -= actualMove;
-            }
-
-            // 날짜 업데이트
-            month++;
-            if (month > 12) {
-                month = 1;
-                year++;
-            }
-
-            // 날짜 표기 업데이트
-            document.getElementById('time-display').innerText = `${year}년 ${String(month).padStart(2, '0')}월`;
-            document.getElementById('news-date').innerText = `${year}년 ${month}월 1일 발행`;
-
-            // 통계 표기 업데이트
-            document.getElementById('rural-pop-display').innerText = ruralPop.toLocaleString() + "명";
-            document.getElementById('urban-pop-display').innerText = urbanPop.toLocaleString() + "명";
-
-            // 막대 그래프 비중 업데이트
-            const ruralPct = Math.round((ruralPop / totalPop) * 100);
-            const urbanPct = 100 - ruralPct;
-
-            document.getElementById('pct-rural').innerText = ruralPct;
-            document.getElementById('pct-urban').innerText = urbanPct;
-            document.getElementById('bar-rural').style.width = ruralPct + "%";
-            document.getElementById('bar-urban').style.width = urbanPct + "%";
-
-            // 기사 작성 및 퀘스트 체크
-            generateNewspaper(slumLevel, netFlow);
-            checkQuests(urbanPct, slumLevel);
-            updateVisuals();
-        }
-
-        // 시각화 모니터 아이콘 업데이트
-        function updateVisuals() {
-            // 일자리에 맞춰 공장 개수 늘리기
-            const factoryContainer = document.getElementById('factory-visual-container');
-            const smokeArea = document.getElementById('smoke-area');
-            factoryContainer.innerHTML = '';
-            
-            let factoryCount = Math.min(5, Math.floor(jobs / 20));
-            for (let i = 0; i < factoryCount; i++) {
-                factoryContainer.innerHTML += `<div class="relative">🏭</div>`;
-            }
-
-            // 연기 효과 동적 적용 (플레이어 가동 중일 때 더 많이 발생)
-            smokeArea.innerHTML = '';
-            if (isPlaying && jobs > 10) {
-                let smokeCount = Math.min(6, Math.floor(jobs / 15));
-                for (let i = 0; i < smokeCount; i++) {
-                    let randomLeft = 60 + Math.random() * 30; // 오른쪽에 굴뚝 배치
-                    let delay = Math.random() * 2;
-                    smokeArea.innerHTML += `
-                        <div class="smoke-particle absolute bg-gray-500 rounded-full w-4 h-4 opacity-0" 
-                             style="left: ${randomLeft}%; bottom: 60px; animation-delay: ${delay}s;"></div>`;
-                }
-            }
-
-            // 슬럼 상태에 따라 쓰레기, 텐트, 경고 아이콘 추가
-            const slumContainer = document.getElementById('slum-visual-container');
-            slumContainer.innerHTML = '';
-            let slumCount = Math.min(8, Math.floor(parseInt(document.getElementById('slum-level-display').innerText) / 12));
-            for (let i = 0; i < slumCount; i++) {
-                slumContainer.innerHTML += `<span>🏚️</span>`;
-            }
-            if (slumCount > 5) {
-                slumContainer.innerHTML += `<span>☣️</span><span>💧</span>`;
-            }
-
-            // 슬럼도 상태에 따라 하늘과 배경 밝기 조정 (스모그 현상 모사)
-            const slumVal = parseInt(document.getElementById('slum-level-display').innerText);
-            const skySun = document.getElementById('sky-sun');
-            if (slumVal > 60) {
-                skySun.innerHTML = `<i class="fa-solid fa-smog text-gray-500"></i>`; // 해가 사라지고 스모그가 나타남
-            } else {
-                skySun.innerHTML = `<i class="fa-solid fa-sun text-yellow-500"></i>`;
-            }
-        }
-
-        // 시간 플레이/일시정지 제어
-        function togglePlay() {
-            initAudio();
-            playSound('click');
-            const playIcon = document.getElementById('play-icon');
-            const playText = document.getElementById('play-text');
-            const btn = document.getElementById('btn-play-pause');
-
-            if (isPlaying) {
-                isPlaying = false;
-                clearInterval(timerId);
-                playIcon.className = "fa-solid fa-play";
-                playText.innerText = "시간 흐르게 하기";
-                btn.className = "bg-[#8c2d19] hover:bg-[#b03a22] text-white px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2";
-            } else {
-                isPlaying = true;
-                timerId = setInterval(simulationStep, 1500); // 1.5초당 한 달씩 진행
-                playIcon.className = "fa-solid fa-pause";
-                playText.innerText = "일시정지 하기";
-                btn.className = "bg-[#4a3e35] hover:bg-[#2c241e] text-[#f2ebd9] px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 pulse-active";
-            }
-        }
-
-        // 특정 프리셋(역사적 사건) 자동 설정 기능
-        function setPreset(presetJobs, presetHousing) {
-            playSound('click');
-            document.getElementById('slider-jobs').value = presetJobs;
-            document.getElementById('slider-housing').value = presetHousing;
-            updateSimulationValues();
-        }
-
-        // 역사 기사 및 가이드 문구 자동 조립
-        function generateNewspaper(slumLevel, netFlow) {
-            const headline = document.getElementById('news-headline');
-            const content = document.getElementById('news-content');
-            const guide = document.getElementById('history-quiz-tip');
-
-            if (jobs < 20) {
-                headline.innerText = `"공장 불 꺼진 기계도시, 다시 고요한 농업 사회로 역행?"`;
-                content.innerText = `일자리를 구하지 못한 이주민들이 다시 고향 농촌이나 교외 지역으로 쓸쓸히 발걸음을 돌리고 있습니다. 도시의 화려했던 방적 공장들은 먼지만 날리고 있어 상인들과 주주들의 시름이 깊어져 갑니다.`;
-                guide.innerText = `💡 1단계 탐구: 일자리가 부족하면 인구가 다시 교외로 유출되는 '역도시화' 현상이 나타납니다. 일자리를 60 이상으로 끌어올려 도시에 다시 활기를 불어넣으세요!`;
-            } 
-            else if (slumLevel >= 60) {
-                playSound('danger');
-                headline.innerText = `"방 한 칸에 12명... 맨체스터 빈민가, 수인성 전염병(콜레라) 발생 우려"`;
-                content.innerText = `일자리를 찾아 맨체스터 공장 지대로 들어오는 노동자들은 폭등하는 방세를 이기지 못해 지하방과 창고에서 집단 노숙을 이어가고 있습니다. 위생 상태가 지극히 파괴적이며 상수도 시설 부족으로 인해 언제 악성 전염병이 창궐할지 모르는 일촉즉발의 상황입니다.`;
-                guide.innerText = `💡 2단계 탐구: 실제 역사 속 산업혁명 당시에도 빈민가의 오물과 전염병이 극심했습니다. 도시 복지를 위해 주거비(집값 슬라이더)를 낮춰 가련한 노동자들의 삶의 질을 보살펴 주어야 합니다.`;
-            } 
-            else if (netFlow > 3000 && housing < 40) {
-                headline.innerText = `"풍부한 일자리와 싼 집값! 맨체스터, 기적의 영광을 맞이하다"`;
-                content.innerText = `현재 도시는 증기기관 동력을 기반으로 한 공업 생산량이 폭증함과 동시에, 양질의 저렴한 주택 공급 정책 덕분에 도시에 거주하는 공장 노동자들의 얼굴에 활기가 넘치고 있습니다. 역사상 유례없는 평화적 대도시 발전의 표본입니다.`;
-                guide.innerText = `💡 성공적 역사 개혁가! 도시 인구와 거주 복지 간의 황금 비율을 발견하셨습니다! 다음 미션 카드도 모두 채워 위대한 설계자가 되어 보십시오.`;
-            } 
-            else if (urbanPop > 60000) {
-                headline.innerText = `"런던 인구 대팽창, 매일 밤 석탄 매연으로 태양을 볼 수 없다"`;
-                content.innerText = `인구 절반 이상이 도시에 살며 엄청난 산업 성장을 주도하고 있습니다. 그러나 동시에 굴뚝에서 쉴 새 없이 뿜어져 나오는 검은 석탄 매연(스모그) 때문에 호흡기 질환자가 기하급수적으로 속출하고 있는 현실입니다.`;
-                guide.innerText = `💡 3단계 탐구: 인구 밀집도가 매우 높습니다. 주거 비용을 유연하게 제어해 보면서 슬럼 위험도를 20% 아래로 방어하는 역사적 지혜를 시험해 보세요.`;
-            } 
-            else {
-                headline.innerText = `"새로운 동력 '증기기관', 공장의 심장부를 세차게 두드리다"`;
-                content.innerText = `영국 북부 및 요크셔 지방을 중심으로 공장 건설 붐이 뜨겁습니다. 양들을 키우던 시골을 벗어나 도심의 공업 일자리를 찾아 가방을 싸는 소작농들이 매달 줄을 이어 신규 인구 유입이 활발히 관찰됩니다.`;
-                guide.innerText = `💡 역사 속으로: 당시 수많은 농민들이 토지에서 쫓겨나 도시 노동자로 밀려난 사건을 '인클로저 운동'이라고 부릅니다.`;
-            }
-        }
-
-        // 미션 검사기
-        function checkQuests(urbanPct, slumLevel) {
-            // 미션 1 검사
-            if (!m1Completed && urbanPct >= 60) {
-                m1Completed = true;
-                playSound('success');
-                showToast("🎉 미션 1 성공! 도시 대이주를 달성했습니다.");
-                document.getElementById('m1-status-icon').innerHTML = `<i class="fa-solid fa-square-check text-green-500 text-xl"></i>`;
-                document.getElementById('mission-1-card').classList.add('border-green-500');
-            }
-
-            // 미션 2 검사
-            if (!m2Completed && urbanPop >= 70000 && slumLevel <= 20) {
-                m2Completed = true;
-                playSound('success');
-                showToast("🎉 미션 2 성공! 복지 균형을 이루었습니다!");
-                document.getElementById('m2-status-icon').innerHTML = `<i class="fa-solid fa-square-check text-green-500 text-xl"></i>`;
-                document.getElementById('mission-2-card').classList.add('border-green-500');
-            }
-        }
-
-        // 토스트 알림창
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = message;
-            toast.className = "fixed bottom-6 right-6 bg-green-900 text-white font-bold py-3 px-6 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-0 opacity-100 flex items-center gap-3";
-            
-            setTimeout(() => {
-                toast.className = "fixed bottom-6 right-6 bg-green-900 text-white font-bold py-3 px-6 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none flex items-center gap-3";
-            }, 3500);
-        }
-
-        // 시뮬레이션 전면 리셋
-        function resetSimulation() {
-            playSound('click');
-            if (isPlaying) {
-                togglePlay();
-            }
-
-            jobs = 30;
-            housing = 20;
-            totalPop = 100000;
-            ruralPop = 85000;
-            urbanPop = 15000;
-            year = 1800;
-            month = 1;
-
-            m1Completed = false;
-            m2Completed = false;
-
-            document.getElementById('slider-jobs').value = jobs;
-            document.getElementById('slider-housing').value = housing;
-            
-            document.getElementById('time-display').innerText = `1800년 01월`;
-            document.getElementById('news-date').innerText = `1800년 1월 1일 발행`;
-            document.getElementById('m1-status-icon').innerHTML = `<i class="fa-regular fa-square text-gray-400 text-xl"></i>`;
-            document.getElementById('mission-1-card').className = "flex items-start gap-3 bg-[#1e1915] p-3 rounded-xl border border-gray-700";
-            document.getElementById('m2-status-icon').innerHTML = `<i class="fa-regular fa-square text-gray-400 text-xl"></i>`;
-            document.getElementById('mission-2-card').className = "flex items-start gap-3 bg-[#1e1915] p-3 rounded-xl border border-gray-700";
-
-            updateSimulationValues();
-            simulationStep();
-        }
-
-        // 앱 구동 초기화
-        window.onload = function() {
-            updateSimulationValues();
-            updateVisuals();
-        };
-    </script>
+  <!-- S5 마무리 -->
+  <section id="s5" class="screen" hidden>
+    <div class="card">
+      <h2 id="wrapQ"></h2>
+      <div id="gearList" class="gear-list"></div>
+      <label for="w2" id="wrapWriteQ" class="q"></label>
+      <p id="wrapMust" class="must"></p>
+      <details class="hint"><summary>💡 막막하면 힌트 보기</summary><p id="wrapHint"></p></details>
+      <textarea id="w2" rows="6"></textarea>
+      <div class="count" id="w2c"></div>
+      <p id="s5Err" class="err" role="alert"></p>
+    </div>
+    <div class="card">
+      <p id="wrapGuide" class="lead"></p>
+      <div id="summary" class="summary"></div>
+      <p id="bodyCount" class="note"></p>
+      <p id="outErr" class="err" role="alert"></p>
+      <div class="btn-row">
+        <button id="submitBtn" class="btn">제출</button>
+        <button id="copyBtn" class="btn btn-ghost"></button>
+      </div>
+      <p id="outMsg" class="note" role="status"></p>
+      <div class="padlet-box">
+        <p class="padlet-guide">제출하고 나서 글을 복사해서, 우리 반 패들렛에 붙여넣어 올려 줘.</p>
+        <a id="padletBtn" class="btn btn-ghost wide" target="_blank" rel="noopener" hidden></a>
+        <p id="padletMsg" class="note"></p>
+      </div>
+      <button id="exampleBtn" class="btn btn-ghost wide" disabled aria-expanded="false"></button>
+      <p id="exampleLock" class="note">글을 복사하면 예시 글을 볼 수 있어.</p>
+      <div id="examples" class="examples" hidden></div>
+    </div>
+    <div class="btn-row nav">
+      <button id="s5Back" class="btn btn-ghost">이전</button>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast" role="status" hidden></div>
+<script src="focus_guard.js"></script>
+<script src="glossary.js"></script>
+<script src="draft_guard.js"></script>
+<script src="data.js"></script>
+<script src="logic.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
