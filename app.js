@@ -178,8 +178,8 @@ function renderAll() {
   renderStep1(); renderStep2(); renderStep3(); renderStep4(); renderWrap();
 }
 
-/* ── 1단: 준비 (160쪽) — 짧은 꼬리표(공장에 필요한 것)를 긴 문장 카드에 끌어다 붙인다.
- *    끌기가 어려운 학생은 꼬리표를 누르고 카드를 눌러도 된다. S.placed = { 꼬리표(칸)id: 카드id } ── */
+/* ── 1단: 준비 (160쪽) — 짧은 낱말 카드(공장에 필요한 것)를 긴 문장 카드에 끌어다 붙인다.
+ *    끌기가 어려운 학생은 낱말 카드를 누르고 문장 카드를 눌러도 된다. S.placed = { 낱말 카드(칸)id: 카드id } ── */
 function shuffled(arr, seed) {
   /* 학번으로 섞는 순서를 고정한다(새로고침해도 카드 자리가 안 바뀌게) */
   let s = Number(seed) || 7;
@@ -207,17 +207,17 @@ function renderStep1() {
   const tray = $("slotList"), facts = $("factList");
   tray.innerHTML = ""; facts.innerHTML = "";
   SLOTS.forEach(s => {
-    if (S.placed[s.id]) return; // 붙인 꼬리표는 위 꼬리표 칸에서 뺀다
+    if (S.placed[s.id]) return; // 붙인 낱말 카드는 위 낱말 카드 칸에서 뺀다
     const t = tagEl(s);
     t.dataset.slot = s.id;
     t.setAttribute("role", "button");
     t.tabIndex = 0;
     t.setAttribute("aria-pressed", S.selSlot === s.id ? "true" : "false");
-    t.addEventListener("pointerdown", e => dragStart(e, s.id));
+    t.addEventListener("pointerdown", e => { if (!S.done1) dragStart(e, s.id, TAG_DRAG); });
     t.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickTag(s.id); } });
     tray.appendChild(t);
   });
-  if (!tray.children.length) tray.appendChild(el("p", "note", S.done1 ? "모두 붙였어!" : "꼬리표를 모두 붙였어. «맞춰 보기»를 눌러 봐."));
+  if (!tray.children.length) tray.appendChild(el("p", "note", S.done1 ? "모두 붙였어!" : "낱말 카드를 모두 붙였어. «맞춰 보기»를 눌러 봐."));
   shuffled(FACT_CARDS, S.sid).forEach(c => {
     const card = el("div", "fact");
     card.dataset.card = c.id;
@@ -231,7 +231,7 @@ function renderStep1() {
       pocket.appendChild(t);
       card.classList.add("filled");
     } else {
-      pocket.appendChild(el("span", "pocket-empty", S.selSlot ? "여기에 붙이기" : "꼬리표를 여기에"));
+      pocket.appendChild(el("span", "pocket-empty", S.selSlot ? "여기에 붙이기" : "낱말 카드를 여기에"));
     }
     card.appendChild(pocket);
     if (S.done1) card.classList.add("ok");
@@ -255,7 +255,7 @@ function pickTag(slotId) {
 
 function stick(slotId, cardId) {
   const old = slotOfCard(cardId);
-  if (old) delete S.placed[old]; // 카드에 이미 붙은 꼬리표는 위로 돌려보낸다
+  if (old) delete S.placed[old]; // 카드에 이미 붙은 낱말 카드는 위로 돌려보낸다
   S.placed[slotId] = cardId;
   S.selSlot = "";
   save();
@@ -267,16 +267,17 @@ function pickCard(cardId) {
   $("s1Msg").textContent = "";
   if (S.selSlot) { stick(S.selSlot, cardId); return; }
   const old = slotOfCard(cardId);
-  if (old) { delete S.placed[old]; save(); renderStep1(); return; } // 붙은 꼬리표를 누르면 떨어진다
-  $("s1Msg").textContent = "위 꼬리표를 먼저 골라 줘.";
+  if (old) { delete S.placed[old]; save(); renderStep1(); return; } // 붙은 낱말 카드를 누르면 떨어진다
+  $("s1Msg").textContent = "위 낱말 카드를 먼저 골라 줘.";
 }
 
-/* 끌기: 손가락·마우스 모두 pointer 이벤트로. 조금이라도 움직여야 끌기로 보고, 안 움직이면 누르기(pickTag)로 본다. */
-const drag = { id: "", x: 0, y: 0, ghost: null, moved: false, over: null };
+/* 끌기: 손가락·마우스 모두 pointer 이벤트로. 조금이라도 움직여야 끌기로 보고, 안 움직이면 누르기(onTap)로 본다.
+ * 1단 낱말 카드와 2단 일꾼 배치가 같이 쓴다. opt = { target: 놓을 곳 선택자, ghost: () => 끌리는 모양, onTap(id), onDrop(id, 놓은 곳), onCancel() } */
+const drag = { id: "", x: 0, y: 0, ghost: null, moved: false, over: null, opt: null };
 
-function dragStart(e, slotId) {
-  if (S.done1 || (e.button !== undefined && e.button !== 0)) return;
-  drag.id = slotId; drag.x = e.clientX; drag.y = e.clientY; drag.moved = false; drag.over = null;
+function dragStart(e, id, opt) {
+  if (e.button !== undefined && e.button !== 0) return;
+  drag.id = id; drag.x = e.clientX; drag.y = e.clientY; drag.moved = false; drag.over = null; drag.opt = opt;
   e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId);
   e.currentTarget.addEventListener("pointermove", dragMove);
   e.currentTarget.addEventListener("pointerup", dragEnd);
@@ -288,7 +289,8 @@ function dragMove(e) {
   if (!drag.moved) {
     if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 8) return;
     drag.moved = true;
-    drag.ghost = tagEl(byId(SLOTS, drag.id), "ghost");
+    drag.ghost = drag.opt.ghost();
+    drag.ghost.classList.add("ghost");
     document.body.appendChild(drag.ghost);
     e.currentTarget.classList.add("lifted");
   }
@@ -296,13 +298,13 @@ function dragMove(e) {
   drag.ghost.style.left = e.clientX + "px";
   drag.ghost.style.top = e.clientY + "px";
   const under = document.elementFromPoint(e.clientX, e.clientY);
-  const card = under && under.closest ? under.closest(".fact") : null;
-  if (drag.over !== card) {
+  const spot = under && under.closest ? under.closest(drag.opt.target) : null;
+  if (drag.over !== spot) {
     if (drag.over) drag.over.classList.remove("hover");
-    if (card) card.classList.add("hover");
-    drag.over = card;
+    if (spot) spot.classList.add("hover");
+    drag.over = spot;
   }
-  /* 화면 끝에 닿으면 조금씩 스크롤(폰에서 아래 카드까지 끌고 갈 수 있게) */
+  /* 화면 끝에 닿으면 조금씩 스크롤(폰에서 아래쪽까지 끌고 갈 수 있게) */
   if (e.clientY < 70) window.scrollBy(0, -14);
   else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 14);
 }
@@ -312,18 +314,27 @@ function dragEnd(e) {
   t.removeEventListener("pointermove", dragMove);
   t.removeEventListener("pointerup", dragEnd);
   t.removeEventListener("pointercancel", dragEnd);
-  const id = drag.id, moved = drag.moved, over = drag.over;
+  const id = drag.id, moved = drag.moved, over = drag.over, opt = drag.opt;
   if (drag.ghost) drag.ghost.remove();
-  drag.id = ""; drag.ghost = null; drag.over = null;
+  if (over) over.classList.remove("hover");
+  drag.id = ""; drag.ghost = null; drag.over = null; drag.opt = null;
   t.classList.remove("lifted");
   if (!id) return;
-  if (!moved) { pickTag(id); return; }
-  if (over && e.type === "pointerup") { $("s1Msg").textContent = ""; stick(id, over.dataset.card); return; }
-  renderStep1();
+  if (!moved) { opt.onTap(id); return; }
+  if (over && e.type === "pointerup") { opt.onDrop(id, over); return; }
+  opt.onCancel();
 }
 
+const TAG_DRAG = {
+  target: ".fact",
+  ghost: () => tagEl(byId(SLOTS, drag.id)),
+  onTap: id => pickTag(id),
+  onDrop: (id, card) => { $("s1Msg").textContent = ""; stick(id, card.dataset.card); },
+  onCancel: () => renderStep1()
+};
+
 function checkStep1() {
-  if (Object.keys(S.placed).length < SLOTS.length) { $("s1Msg").textContent = "꼬리표 다섯 개를 모두 붙여 줘."; return; }
+  if (Object.keys(S.placed).length < SLOTS.length) { $("s1Msg").textContent = "낱말 카드 다섯 개를 모두 붙여 줘."; return; }
   const wrong = wrongSlots(S.placed, FACT_CARDS, SLOTS);
   if (wrong.length) {
     S.tries1 = (S.tries1 || 0) + 1;
@@ -332,15 +343,15 @@ function checkStep1() {
       S.done1 = true; S.selSlot = ""; save();
       renderStep1();
       $("s1Msg").textContent = "";
-      toast("정답을 붙여 뒀어. 문장과 꼬리표를 한 번 더 읽어 봐.");
+      toast("정답을 붙여 뒀어. 문장과 낱말 카드를 한 번 더 읽어 봐.");
       $("slotList").scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    wrong.forEach(id => { delete S.placed[id]; }); // 틀린 꼬리표는 위로 돌려보낸다
+    wrong.forEach(id => { delete S.placed[id]; }); // 틀린 낱말 카드는 위로 돌려보낸다
     save();
     renderStep1();
     const left = STEP1.maxTries - S.tries1;
-    $("s1Msg").textContent = wrong.length + "개가 달라. 틀린 꼬리표는 위로 돌아갔어. 다시 붙여 봐. (" +
+    $("s1Msg").textContent = wrong.length + "개가 달라. 틀린 낱말 카드는 위로 돌아갔어. 다시 붙여 봐. (" +
       (left === 1 ? "한 번 더 틀리면 정답을 보여 줄게" : "기회 " + left + "번 남음") + ")";
     return;
   }
@@ -375,7 +386,7 @@ function renderStep2() {
     tabs.appendChild(b);
   });
   const tool = byId(SPINNERS, S.spinTool);
-  $("spinName").textContent = tool.name + " — 한 번에 " + tool.perTap + "가닥";
+  $("spinName").textContent = tool.name + " — 한 번 누르면 " + tool.perTap + "가닥";
   $("spinCap").textContent = tool.cap;
   $("spinImg").src = tool.img;
   $("spinImg").alt = tool.name + " 그림";
@@ -391,7 +402,8 @@ function resetSpinFace() {
   if (spinRun.on) return;
   $("spinTime").textContent = CONFIG.SPIN_SECONDS.toFixed(1);
   $("spinCount").textContent = "0";
-  $("spinBtnText").textContent = "눌러서 시작";
+  $("spinBtnText").textContent = "👆 그림을 눌러 시작";
+  $("spinYarn").innerHTML = "";
 }
 
 function renderBars() {
@@ -414,12 +426,17 @@ function renderBars() {
   });
 }
 
+/* 그림을 누를 때마다 기계가 한 번 돌고(흔들림), «+가닥 수»가 떠오르고, 아래 실 묶음이 늘어난다.
+ * 많이 누를수록 많이 뽑힌다는 것을 눈으로 보게 한다(2026-10-29 «중간 버튼 대신 그림을 눌러 움직이게»). */
 function spinTap() {
   if (Date.now() - spinRun.ended < 800) return; // 끝나자마자 눌린 것은 무시(새 판이 바로 시작되지 않게)
   const tool = byId(SPINNERS, S.spinTool);
+  const btn = $("spinBtn");
   if (!spinRun.on) {
     spinRun.on = true; spinRun.taps = 0; spinRun.left = CONFIG.SPIN_SECONDS * 10;
     $("spinBtnText").textContent = "계속 눌러!";
+    $("spinYarn").innerHTML = "";
+    btn.classList.add("running");
     renderStep2();
     spinRun.timer = setInterval(() => {
       spinRun.left -= 1;
@@ -429,77 +446,161 @@ function spinTap() {
   }
   spinRun.taps += 1;
   $("spinCount").textContent = threads(spinRun.taps, tool.perTap).toLocaleString();
-  const w = $("spinWheel");
-  w.style.transform = "rotate(" + (spinRun.taps * 40) + "deg)";
+  btn.classList.remove("kick");
+  void btn.offsetWidth; // 같은 움직임을 누를 때마다 다시 시작
+  btn.classList.add("kick");
+  const pop = el("span", "spin-pop", "+" + tool.perTap);
+  pop.style.left = (25 + Math.random() * 50) + "%";
+  $("spinPops").appendChild(pop);
+  setTimeout(() => pop.remove(), 900);
+  const yarn = $("spinYarn");
+  if (yarn.children.length < 60) yarn.appendChild(el("span", "strand s-" + tool.id));
 }
 
 function endSpin() {
   clearInterval(spinRun.timer);
   spinRun.on = false; spinRun.ended = Date.now();
+  $("spinBtn").classList.remove("running", "kick");
   const tool = byId(SPINNERS, S.spinTool);
   S.spin[tool.id] = threads(spinRun.taps, tool.perTap);
-  $("spinBtnText").textContent = "다시 하려면 눌러";
   const next = SPINNERS[SPINNERS.indexOf(tool) + 1];
-  if (next && S.spin[next.id] === undefined) S.spinTool = next.id;
+  const moved = next && S.spin[next.id] === undefined;
+  if (moved) S.spinTool = next.id;
   save();
   renderStep2();
-  $("spinTime").textContent = "0.0";
-  $("spinCount").textContent = S.spin[tool.id].toLocaleString();
-  toast(tool.name + ": " + S.spin[tool.id].toLocaleString() + "가닥!" + (next && S.spinTool === next.id ? " 이제 " + next.name + "!" : ""));
+  if (moved) { resetSpinFace(); }
+  else {
+    $("spinBtnText").textContent = "다시 하려면 그림을 눌러";
+    $("spinTime").textContent = "0.0";
+    $("spinCount").textContent = S.spin[tool.id].toLocaleString();
+  }
+  toast(tool.name + ": " + S.spin[tool.id].toLocaleString() + "가닥!" + (moved ? " 이제 " + next.name + "!" : ""));
 }
 
-/* 방직기: 증기 기관이 없으면 한 사람이 1대씩. 증기 기관 공장에서는 기관 → 축 → 벨트로 힘이 가고,
- * 기관을 멈춰 보면 방직기가 모두 서는 것으로 «동력»이 무엇인지 느끼게 한다(2026-10-29 «증기 기관 역할이 안 느껴짐»). */
+/* 방직기: 일꾼(👷)을 끌어다 놓아 배치한다(2026-10-29 «기계를 누른다는 걸 애들이 이해 못할 듯»).
+ * 증기 기관이 없으면 한 사람이 방직기 1대(자리 = 방직기). 증기 기관 공장에서는 한 사람이 한 줄(3대)을 살핀다(자리 = 줄).
+ * 그래서 6대를 다 돌려도 사람이 남는다. 기관을 멈춰 보면 방직기가 모두 서는 것으로 «동력»을 느끼게 한다. */
 const engine = { on: true };
+let selWorker = false;
+
+function spotsCount(steam) { return steam ? Math.ceil(LOOM.looms / LOOM.perWorkerSteam) : LOOM.looms; }
+function runningNow() { return S.loomSteam && !engine.on ? 0 : runningLooms(S.loomSteam, S.loomOn.length, LOOM); }
+
+function workerEl(cls) { return el("span", "worker" + (cls ? " " + cls : ""), "👷"); }
+
+const WORKER_DRAG = {
+  target: ".spot",
+  ghost: () => workerEl(),
+  onTap: () => {
+    selWorker = !selWorker; renderLooms();
+    if (selWorker) { const s = document.querySelector(".spot.ready"); if (s) s.focus(); } // 키보드: 고른 뒤 바로 빈자리로
+  },
+  onDrop: (id, spot) => placeWorker(Number(spot.dataset.spot)),
+  onCancel: () => renderLooms()
+};
 
 function renderLooms() {
   const steam = S.loomSteam;
   $("loomHand").setAttribute("aria-checked", steam ? "false" : "true");
   $("loomSteam").setAttribute("aria-checked", steam ? "true" : "false");
   $("loomRule").textContent = steam ? STEP2.loomRuleSteam : STEP2.loomRuleHand;
-  const limit = loomLimit(steam, LOOM.workers, LOOM.looms);
+  $("workerHow").textContent = steam ? STEP2.workerHowSteam : STEP2.workerHowHand;
   const box = $("engineBox");
   box.hidden = !steam;
   box.classList.toggle("off", !engine.on);
   box.classList.toggle("run", engine.on && S.loomOn.length > 0);
   $("engineBtn").textContent = engine.on ? STEP2.engineBtnStop : STEP2.engineBtnGo;
   $("engineBtn").disabled = steam && S.loomOn.length === 0 && engine.on;
+
+  /* 아직 배치하지 않은 사람 */
   const w = $("workers");
   w.innerHTML = "";
-  for (let i = 0; i < LOOM.workers; i++) {
-    const busy = !steam && i < S.loomOn.length;
-    w.appendChild(el("span", "worker" + (busy ? " busy" : ""), "👷"));
+  const free = LOOM.workers - S.loomOn.length;
+  for (let i = 0; i < free; i++) {
+    const sel = selWorker && i === 0;
+    const t = workerEl("free" + (sel ? " sel" : ""));
+    t.setAttribute("role", "button");
+    t.tabIndex = 0;
+    t.setAttribute("aria-label", "일할 사람");
+    t.setAttribute("aria-pressed", sel ? "true" : "false");
+    t.addEventListener("pointerdown", e => dragStart(e, "w", WORKER_DRAG));
+    t.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); WORKER_DRAG.onTap(); } });
+    w.appendChild(t);
   }
-  w.appendChild(el("span", "worker-note", steam ? "기계를 살피는 사람" : "방직기를 맡을 수 있는 사람"));
+  const allRun = S.loomOn.length === spotsCount(steam);
+  w.appendChild(el("span", "worker-note",
+    !free ? "남은 사람 없음" : allRun ? "방직기를 맡지 않은 사람 " + free + "명" : "기다리는 사람 " + free + "명"));
+  w.classList.toggle("idle", allRun && free > 0);
+
+  /* 방직기: 증기 기관이 없으면 방직기마다 자리, 있으면 줄마다 자리 */
   const grid = $("loomGrid");
   grid.innerHTML = "";
   grid.classList.toggle("steam", steam);
   grid.classList.toggle("halted", steam && !engine.on);
-  for (let i = 0; i < LOOM.looms; i++) {
-    const on = S.loomOn.indexOf(i) >= 0;
-    const b = el("button", "loom" + (on ? " on" : ""));
-    b.type = "button";
-    b.setAttribute("aria-pressed", on ? "true" : "false");
-    b.setAttribute("aria-label", "방직기 " + (i + 1) + (on ? " 돌아가는 중" : " 멈춤"));
+  const loomBox = (i, on) => {
+    const b = el("div", "loom" + (on ? " on" : ""));
     b.innerHTML = (steam ? '<span class="belt"></span>' : "") +
       '<span class="loom-frame"><span class="cloth"></span><span class="shuttle"></span></span><span class="loom-no">' + (i + 1) + "</span>";
-    b.addEventListener("click", () => toggleLoom(i, limit));
-    grid.appendChild(b);
+    return b;
+  };
+  const seat = staffed => {
+    const s = el("span", "seat");
+    s.appendChild(staffed ? workerEl("placed") : el("span", "seat-empty", "빈자리"));
+    return s;
+  };
+  for (let k = 0; k < spotsCount(steam); k++) {
+    const staffed = S.loomOn.indexOf(k) >= 0;
+    const spot = el("div", "spot" + (staffed ? " staffed" : "") + (selWorker && !staffed ? " ready" : ""));
+    spot.dataset.spot = k;
+    spot.setAttribute("role", "button");
+    spot.tabIndex = 0;
+    if (steam) {
+      spot.classList.add("loom-row");
+      spot.setAttribute("aria-label", "방직기 줄 " + (k + 1) + (staffed ? ", 사람 있음" : ", 비어 있음"));
+      spot.appendChild(seat(staffed));
+      for (let j = 0; j < LOOM.perWorkerSteam; j++) {
+        const i = k * LOOM.perWorkerSteam + j;
+        if (i < LOOM.looms) spot.appendChild(loomBox(i, staffed));
+      }
+    } else {
+      spot.setAttribute("aria-label", "방직기 " + (k + 1) + (staffed ? ", 사람 있음" : ", 비어 있음"));
+      spot.appendChild(loomBox(k, staffed));
+      spot.appendChild(seat(staffed));
+    }
+    spot.addEventListener("click", () => tapSpot(k));
+    spot.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tapSpot(k); } });
+    grid.appendChild(spot);
   }
-  $("loomMsg").textContent = "돌아가는 방직기 " + (steam && !engine.on ? 0 : S.loomOn.length) + "대 / " + LOOM.looms + "대";
+  $("loomMsg").textContent = "돌아가는 방직기 " + runningNow() + "대 / " + LOOM.looms + "대";
 }
 
-function toggleLoom(i, limit) {
-  if (S.loomSteam && !engine.on) { $("loomMsg").textContent = "증기 기관이 멈춰 있어서 방직기를 돌릴 힘이 없어. 증기 기관을 다시 돌려 봐."; return; }
-  const k = S.loomOn.indexOf(i);
-  if (k >= 0) S.loomOn.splice(k, 1);
-  else if (S.loomOn.length < limit) S.loomOn.push(i);
-  else { renderLooms(); $("loomMsg").textContent = "방직기를 맡을 사람이 모자라! (" + S.loomOn.length + "대에서 멈춤)"; return; }
+function tapSpot(k) {
+  const at = S.loomOn.indexOf(k);
+  if (at >= 0) { S.loomOn.splice(at, 1); renderLooms(); save(); return; } // 배치한 사람을 누르면 위로 돌아간다
+  if (selWorker) { placeWorker(k); return; }
+  $("loomMsg").textContent = S.loomOn.length < LOOM.workers
+    ? "위의 사람(👷)을 끌어다 여기에 놓아 줘. 사람을 먼저 누르고 여기를 눌러도 돼."
+    : "일할 사람이 모자라! 남은 사람이 없어.";
+}
+
+function placeWorker(k) {
+  selWorker = false;
+  if (S.loomSteam && !engine.on) { renderLooms(); $("loomMsg").textContent = "증기 기관이 멈춰 있어서 방직기를 돌릴 힘이 없어. 증기 기관을 다시 돌려 봐."; return; }
+  if (S.loomOn.indexOf(k) >= 0) { renderLooms(); return; }
+  if (S.loomOn.length >= LOOM.workers) { renderLooms(); $("loomMsg").textContent = "일할 사람이 모자라! 남은 사람이 없어."; return; }
+  S.loomOn.push(k);
   const mode = S.loomSteam ? "steam" : "hand";
-  S.loomMax[mode] = Math.max(S.loomMax[mode], S.loomOn.length);
+  S.loomMax[mode] = Math.max(S.loomMax[mode], runningLooms(S.loomSteam, S.loomOn.length, LOOM));
   renderLooms();
-  if (!S.loomSteam && S.loomOn.length === limit && !S.loomMax.steam) $("loomMsg").textContent += " — 이번엔 «증기 기관 공장»으로 바꿔 봐.";
-  if (S.loomSteam && S.loomOn.length === LOOM.looms && !S.engineTried) $("loomMsg").textContent = "같은 " + LOOM.workers + "명으로 방직기 " + LOOM.looms + "대가 돌아가! " + STEP2.engineAsk;
+  const msg = $("loomMsg");
+  if (!S.loomSteam && S.loomOn.length === LOOM.workers) {
+    msg.textContent += " — 사람이 모두 일하는데 방직기 " + (LOOM.looms - LOOM.workers) + "대는 멈춰 있어." + (S.loomMax.steam ? "" : " 이번엔 «증기 기관 공장»으로 바꿔 봐.");
+  }
+  if (S.loomSteam && runningNow() === LOOM.looms) {
+    const left = LOOM.workers - S.loomOn.length;
+    msg.textContent = "방직기 " + LOOM.looms + "대가 모두 돌아가! " + S.loomOn.length + "명이면 충분했어. 남은 " + left + "명은 이 공장에서 맡을 방직기가 없어." +
+      (S.engineTried ? "" : " " + STEP2.engineAsk);
+  }
   save();
   checkDone2();
 }
@@ -509,14 +610,14 @@ function toggleEngine() {
   renderLooms();
   if (!engine.on) {
     $("loomMsg").textContent = STEP2.engineStopped;
-    if (S.loomOn.length === LOOM.looms && !S.engineTried) { S.engineTried = true; save(); }
+    if (runningLooms(true, S.loomOn.length, LOOM) === LOOM.looms && !S.engineTried) { S.engineTried = true; save(); }
   }
   checkDone2();
 }
 
 /* 두 공장을 다 돌려 보고, 증기 기관을 멈춰 본 뒤에 교과서 정리를 연다(순서는 상관없다) */
 function checkDone2() {
-  if (S.done2 || !S.engineTried || S.loomMax.hand < loomLimit(false, LOOM.workers, LOOM.looms) || S.loomMax.steam < LOOM.looms) return;
+  if (S.done2 || !S.engineTried || S.loomMax.hand < runningLooms(false, LOOM.workers, LOOM) || S.loomMax.steam < LOOM.looms) return;
   const msg = $("loomMsg").textContent;
   S.done2 = true; save();
   renderStep2();
@@ -526,7 +627,7 @@ function checkDone2() {
 
 function setLoomMode(steam) {
   if (S.loomSteam === steam) return;
-  S.loomSteam = steam; S.loomOn = []; engine.on = true;
+  S.loomSteam = steam; S.loomOn = []; engine.on = true; selWorker = false;
   renderLooms();
 }
 
@@ -539,8 +640,8 @@ function goStep3() {
 
 /* ── 3단: 운송 (161쪽) ── */
 function renderStep3() {
-  radioGroup($("landPick"), VEHICLES.land, () => S.land, v => { S.land = v; });
-  radioGroup($("seaPick"), VEHICLES.sea, () => S.sea, v => { S.sea = v; });
+  radioGroup($("landPick"), VEHICLES.land, () => S.land, v => { S.land = v; clearRace(); });
+  radioGroup($("seaPick"), VEHICLES.sea, () => S.sea, v => { S.sea = v; clearRace(); });
   $("steamCard").hidden = !S.ran;
   const list = $("steamList");
   list.innerHTML = "";
@@ -559,30 +660,78 @@ function renderStep3() {
   $("s3Next").disabled = !S.done3;
 }
 
+/* 출발하면 네 가지 길(육지 2 × 바다 2)을 한 번에 달려 내가 고른 길과 비교한다(2026-10-29 «매번 눌러 보지 않을 것»).
+ * 빠르기(초)는 그림 속 비교용일 뿐 실제 걸린 시간이 아니다. */
+function legSec(v) { return v.fast ? 1.2 : 4; }
+
+/* 탈것을 바꾸면 지난 결과(내 선택·순위)를 지운다. 달리는 중이면 그대로 둔다. */
+function clearRace() {
+  if ($("goBtn").disabled) return;
+  $("race").hidden = true; $("race").innerHTML = ""; $("routeMsg").textContent = "";
+}
+
 function runRoute() {
   if (!S.land || !S.sea) { $("routeMsg").textContent = "육지와 바다에서 탈 것을 하나씩 골라 줘."; return; }
-  const land = byId(VEHICLES.land, S.land), sea = byId(VEHICLES.sea, S.sea);
-  const go = (runner, v, delay) => {
-    const r = $(runner);
-    r.textContent = v.icon;
-    r.style.transition = "none"; r.style.left = "0%";
-    void r.offsetWidth; // 위치를 처음으로 되돌린 뒤 다시 움직인다
-    const sec = v.fast ? 1.2 : 4; // 그림 속 빠르기 차이일 뿐 실제 시간이 아니다
-    r.style.transition = "left " + sec + "s linear " + delay + "s";
-    r.style.left = "calc(100% - 2em)";
-    return sec;
-  };
+  const combos = [];
+  VEHICLES.land.forEach(l => VEHICLES.sea.forEach(s => combos.push({ land: l, sea: s, mine: l.id === S.land && s.id === S.sea })));
+  combos.sort((a, b) => b.mine - a.mine); // 내 선택을 맨 위에
+  const race = $("race");
+  race.innerHTML = "";
+  race.hidden = false;
+  const ends = el("div", "race-ends");
+  ["공장", "항구", "먼 시장"].forEach(t => ends.appendChild(el("span", "", t)));
+  race.appendChild(ends);
+  combos.forEach(c => {
+    c.total = legSec(c.land) + legSec(c.sea);
+    const lane = el("div", "lane" + (c.mine ? " mine" : ""));
+    const name = el("div", "lane-name");
+    if (c.mine) name.appendChild(el("b", "mine-badge", "내 선택"));
+    name.appendChild(el("span", "", c.land.name + " → " + c.sea.name));
+    c.rank = el("span", "lane-rank", "");
+    name.appendChild(c.rank);
+    lane.appendChild(name);
+    const track = el("div", "lane-track");
+    track.appendChild(el("span", "leg-land"));
+    track.appendChild(el("span", "leg-sea"));
+    c.runner = el("span", "runner");
+    c.img = el("img");
+    c.img.alt = "";
+    c.runner.appendChild(c.img);
+    track.appendChild(c.runner);
+    lane.appendChild(track);
+    race.appendChild(lane);
+  });
+  const ranks = combos.map(c => 1 + combos.filter(o => o.total < c.total).length);
   $("goBtn").disabled = true;
-  const t1 = go("landRunner", land, 0);
-  const t2 = go("seaRunner", sea, t1);
   $("routeMsg").textContent = "가는 중…";
-  setTimeout(() => {
-    $("goBtn").disabled = false;
-    const bothSteam = land.fast && sea.fast, noneSteam = !land.fast && !sea.fast;
-    $("routeMsg").textContent = land.name + "와 " + sea.name + "(으)로 보냈어. " +
-      (bothSteam ? "말이나 바람 대신 무엇의 힘으로 갔을까?" : noneSteam ? "다른 탈 것으로도 보내서 비교해 봐." : "나머지 하나도 바꿔서 비교해 봐.");
-    if (!S.ran) { S.ran = true; save(); renderStep3(); }
-  }, (t1 + t2) * 1000 + 200);
+  /* 움직임 줄이기 설정이면 달리는 모습 없이 바로 도착 결과를 보여 준다 */
+  const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const t0 = performance.now() - (still ? 60000 : 0);
+  const longest = Math.max(...combos.map(c => c.total));
+  const frame = now => {
+    const t = (now - t0) / 1000;
+    combos.forEach((c, i) => {
+      const onLand = t < legSec(c.land);
+      const v = onLand ? c.land : c.sea;
+      const p = onLand ? 0.5 * t / legSec(c.land) : 0.5 + 0.5 * Math.min(1, (t - legSec(c.land)) / legSec(c.sea));
+      if (c.img.dataset.v !== v.id) { c.img.src = v.img; c.img.dataset.v = v.id; c.runner.classList.toggle("smoke", v.fast); }
+      c.runner.style.left = "calc((100% - var(--runner-w)) * " + p.toFixed(4) + ")";
+      if (p >= 1 && !c.done) { c.done = true; c.runner.classList.remove("smoke"); c.rank.textContent = ranks[i] + "등 도착"; }
+    });
+    if (t < longest + 0.1) requestAnimationFrame(frame);
+    else finishRoute(combos, ranks);
+  };
+  requestAnimationFrame(frame);
+}
+
+function finishRoute(combos, ranks) {
+  $("goBtn").disabled = false;
+  const k = combos.findIndex(c => c.mine), mine = combos[k];
+  const best = combos.find((c, i) => ranks[i] === 1);
+  $("routeMsg").textContent = mine === best
+    ? "내가 고른 길이 가장 먼저 도착했어! 말이나 바람 대신 무엇의 힘으로 갔을까?"
+    : "내가 고른 길은 " + ranks[k] + "등으로 도착했어. 가장 먼저 도착한 길은 " + best.land.name + " → " + best.sea.name + "이야. 둘은 무엇이 달랐을까?";
+  if (!S.ran) { S.ran = true; save(); renderStep3(); }
 }
 
 function checkSteam() {
@@ -699,7 +848,7 @@ function renderWrap() {
   renderSummary();
 }
 
-/* 복사 글: 학번·이름 한 줄과 [꼬리표] 한 줄만 붙이고 나머지는 학생이 쓴 글 */
+/* 복사 글: 학번·이름 한 줄과 [고른 톱니바퀴] 한 줄만 붙이고 나머지는 학생이 쓴 글 */
 function gearName() { const g = byId(GEARS, S.gear); return g ? g.name : "(아직 안 고름)"; }
 function bodyText() { return "[고른 톱니바퀴] " + gearName() + "\n" + val("w2"); }
 function buildOutText() { return S.sid + " " + S.name + "\n" + bodyText(); }
@@ -712,7 +861,7 @@ function renderSummary() {
   box.appendChild(el("p", "sum-line", val("w2") || "(아직 글이 없어)"));
   const n = studentChars();
   const short = n < WRAP.minChars;
-  $("bodyCount").textContent = "내가 쓴 글 " + n + "자 (꼬리표 제외)" + (short ? " — " + WRAP.minChars + "자 이상 써 보자." : "");
+  $("bodyCount").textContent = "내가 쓴 글 " + n + "자 ([고른 톱니바퀴] 줄 제외)" + (short ? " — " + WRAP.minChars + "자 이상 써 보자." : "");
   $("bodyCount").classList.toggle("warn", short);
   $("w2c").textContent = n + "자";
   $("submitBtn").disabled = S.submitted || S.sending;
@@ -842,7 +991,6 @@ function init() {
   $("loomQ").textContent = STEP2.loomQ;
   $("spinPicNote").textContent = PIC_NOTE;
   $("enginePicNote").textContent = PIC_NOTE;
-  $("engineImg").src = ENGINE_IMG;
   $("s2WriteQ").textContent = STEP2.writeQ;
   $("w1").placeholder = STEP2.writePh;
   $("s2Hint").textContent = STEP2.hint;
@@ -898,7 +1046,7 @@ function init() {
   $("submitBtn").addEventListener("click", submitAll);
   $("exampleBtn").addEventListener("click", toggleExamples);
   $("p1").addEventListener("input", () => { $("s1Err").textContent = ""; });
-  Glossary.start({ terms: GLOSSARY, unique: true, skip: ["#steps", ".tag", ".engine-box", ".spin-tab", ".loom", ".route", ".order-item", ".gear-name", ".role-pick", ".opt-row", ".toast"] }); // 어려운 낱말 풀이 (glossary.js). unique: 앱 전체에서 낱말마다 처음 한 번만 밑줄(2026-10-29 «너무 자주 나와 읽기 어렵다»)
+  Glossary.start({ terms: GLOSSARY, unique: true, skip: ["#steps", ".tag", ".engine-box", ".spin-tab", ".spot", ".race", ".order-item", ".gear-name", ".role-pick", ".opt-row", ".toast"] }); // 어려운 낱말 풀이 (glossary.js). unique: 앱 전체에서 낱말마다 처음 한 번만 밑줄(2026-10-29 «너무 자주 나와 읽기 어렵다»)
 }
 
 init();

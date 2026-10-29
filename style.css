@@ -51,7 +51,7 @@ label.q.first{margin-top:0}
 input,textarea{width:100%;font:inherit;font-size:17px;padding:12px 14px;border:1px solid #b4b9bd;border-radius:4px;background:#fff;color:var(--ink)}
 textarea{resize:vertical;line-height:1.7}
 textarea[readonly]{background:#eef0f1;color:var(--muted)}
-input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus-visible,.slot:focus-visible,.fact:focus-visible,.gear:focus-visible,a:focus-visible{outline:3px solid #c9a645;outline-offset:1px}
+input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus-visible,.slot:focus-visible,.fact:focus-visible,.tag:focus-visible,.spot:focus-visible,.worker.free:focus-visible,.gear:focus-visible,a:focus-visible{outline:3px solid #c9a645;outline-offset:1px}
 .count{color:var(--muted);font:16px var(--sans);text-align:right;margin-top:2px}
 .must{margin:0 0 8px;padding:8px 12px;border:1px dashed var(--brass);border-radius:4px;font:16px/1.6 var(--sans);color:var(--soot-deep)}
 
@@ -88,7 +88,7 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 .hint summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font:500 16px var(--sans);color:var(--olive)}
 .hint p{margin:0 0 12px}
 
-/* 1단: 꼬리표(짧다)를 문장 카드(길다)에 끌어다 붙인다. 꼬리표 칸은 스크롤해도 위에 붙어 있다. */
+/* 1단: 낱말 카드(짧다)를 문장 카드(길다)에 끌어다 붙인다. 낱말 카드 칸은 스크롤해도 위에 붙어 있다. */
 .tray{position:sticky;top:0;z-index:5;margin:0 -8px 14px;padding:10px 8px;background:var(--page);border-bottom:2px solid var(--line)}
 .tray-label,.fact-label{font:700 16px var(--sans);color:var(--soot-deep);margin-bottom:8px}
 .tag-list{display:flex;flex-wrap:wrap;gap:8px;min-height:52px;align-items:center}
@@ -121,18 +121,31 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 .spin-tab[aria-checked="true"]{border-color:var(--brick);background:var(--brick-wash);font-weight:700}
 .spin-tab:disabled{opacity:.5;cursor:not-allowed}
 .spin-stage{border:1px solid var(--line);border-radius:5px;padding:14px;background:#fff}
-.spin-head{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:start;margin-bottom:10px}
 .spin-name{font:700 1.05rem var(--sans);color:var(--soot-deep)}
 .spin-cap{margin:4px 0 12px;color:var(--muted);font-size:16px;line-height:1.6}
 .spin-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .spin-clock,.spin-count{flex:1;text-align:center;font:700 1.9rem var(--sans);color:var(--soot-deep)}
 .spin-clock small,.spin-count small{display:block;font:500 16px var(--sans);color:var(--muted)}
-.spin-btn{flex:none;width:150px;height:150px;border-radius:50%;border:3px solid var(--soot);background:var(--brass-wash);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:700 16px var(--sans);color:var(--soot-deep);touch-action:manipulation;user-select:none;-webkit-user-select:none}
-.spin-btn:active{background:#f3e4b4}
-.spin-btn svg{width:84px;height:84px;transition:transform .12s ease-out}
-.wheel-rim{fill:none;stroke:var(--soot);stroke-width:6}
-.wheel-spokes line{stroke:var(--brass);stroke-width:4}
-.wheel-hub{fill:var(--soot)}
+/* 그림이 곧 버튼: 누를 때마다 한 번 «돌고»(kick), 도는 동안(running)은 덜컹거린다 */
+.spin-pic-btn{position:relative;flex:none;width:240px;padding:0;border:3px solid var(--brass);border-radius:10px;background:#faf8f2;cursor:pointer;overflow:visible;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.spin-pic-btn img{display:block;width:100%;height:auto;border-radius:7px;pointer-events:none}
+.spin-pic-btn:hover{border-color:var(--brick)}
+.spin-pic-btn.running{border-color:var(--brick)}
+.spin-pic-btn.running img{animation:rattle .18s linear infinite}
+.spin-pic-btn.kick img{animation:kick .25s ease-out}
+.spin-hint{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);white-space:nowrap;padding:4px 12px;border-radius:999px;background:rgba(35,38,42,.82);color:#fff;font:700 16px var(--sans)}
+.spin-pops{position:absolute;inset:0;pointer-events:none}
+.spin-pop{position:absolute;top:30%;font:800 1.4rem var(--sans);color:var(--brick);text-shadow:0 0 4px #fff,0 0 2px #fff;animation:pop .9s ease-out forwards}
+@keyframes kick{0%{transform:rotate(0) scale(1)}40%{transform:rotate(-3deg) scale(1.04)}100%{transform:rotate(0) scale(1)}}
+@keyframes rattle{0%,100%{transform:translate(0,0)}25%{transform:translate(1px,-1px)}75%{transform:translate(-1px,1px)}}
+@keyframes pop{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-60px)}}
+.pic-note{margin:4px 0 0;text-align:center;font:14px/1.4 var(--sans);color:var(--muted)}
+/* 실 묶음: 누른 만큼 실 가닥이 늘어난다 */
+.yarn{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;min-height:6px;margin-top:8px}
+.strand{width:4px;height:26px;border-radius:2px;background:#e7dcc3;box-shadow:inset 0 0 0 1px #c9b98f;animation:grow .25s ease-out}
+.strand.s-jenny{background:repeating-linear-gradient(90deg,#e7dcc3 0 1px,#fff 1px 2px);width:10px}
+.strand.s-jenny2{background:repeating-linear-gradient(90deg,#e7dcc3 0 1px,#fff 1px 2px);width:24px}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 .bars{margin-top:14px}
 .bars-title{font:700 16px var(--sans);color:var(--soot-deep);margin-bottom:6px}
 .bar-row{display:grid;grid-template-columns:9.5em 1fr 6.5em;align-items:center;gap:8px;margin-bottom:6px;font:16px var(--sans)}
@@ -143,9 +156,22 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 /* 2단: 방직기 */
 .loom-switch{display:flex;gap:10px;flex-wrap:wrap}
 .loom-switch .opt{flex:1 1 200px}
-.workers{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:14px 0 8px;font-size:1.6rem;min-height:2.2rem}
+/* 일꾼 배치: 위 줄의 사람(👷)을 끌어다 방직기 빈자리에 놓는다 */
+.workers{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0 4px;padding:8px 10px;min-height:3.6rem;border:2px dashed #c9c4bd;border-radius:6px;background:#fff}
+.workers.idle{border-color:var(--brass)}
+.worker{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;font-size:1.8rem;line-height:1}
+.worker.free{background:var(--brass-wash);border:2px solid var(--brass);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.worker.free.sel{border-color:var(--brick);box-shadow:0 0 0 3px var(--brick)}
+.worker.lifted{opacity:.35}
+.worker.ghost{position:fixed;z-index:1000;pointer-events:none;transform:translate(-50%,-60%);background:var(--brass-wash);border:2px solid var(--brick);box-shadow:0 6px 16px rgba(35,38,42,.3)}
+.worker.placed{width:40px;height:40px;font-size:1.5rem;background:var(--brass-wash);border:2px solid var(--brass)}
 .worker-note{font:16px var(--sans);color:var(--muted)}
-.worker.busy{opacity:.35}
+.workers.idle .worker-note{color:var(--soot-deep);font-weight:700}
+.spot{cursor:pointer;border-radius:6px}
+.spot.ready .seat-empty,.spot.hover .seat-empty{border-color:var(--brick);background:var(--brick-wash);color:var(--brick)}
+.spot.hover{box-shadow:0 0 0 3px var(--brick)}
+.seat{display:flex;align-items:center;justify-content:center;min-height:46px}
+.seat-empty{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:42px;border:2px dashed #b4b9bd;border-radius:6px;font:500 15px var(--sans);color:var(--muted)}
 /* 증기 기관: 기관 → 축(방직기 줄 위 막대) → 벨트 → 방직기. 멈추면(halted) 모두 선다. */
 .engine-box{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;margin:12px 0 6px;padding:12px;border:2px solid var(--brass);border-radius:6px;background:var(--brass-wash)}
 .engine-title{font:700 1.05rem var(--sans);color:var(--soot-deep);margin-bottom:8px}
@@ -156,7 +182,9 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 .power-line{grid-column:1/-1;text-align:center;font:700 16px var(--sans);color:var(--soot-deep)}
 .engine-box.off .power-line{opacity:.35;text-decoration:line-through}
 @keyframes chug{from{transform:translateY(0)}to{transform:translateY(-2px)}}
-.loom-grid.steam{padding-top:24px;row-gap:34px}
+.loom-grid.steam{display:flex;flex-direction:column;gap:12px}
+.loom-row{display:grid;grid-template-columns:64px repeat(3,1fr);gap:10px;align-items:end;padding:30px 8px 8px;border:1px solid var(--line)}
+.loom-row .seat-empty{min-height:96px;font-size:14px}
 .loom-grid.steam .loom::after{content:"";position:absolute;left:-6px;right:-6px;top:-25px;height:8px;border-radius:4px;background:repeating-linear-gradient(90deg,var(--soot) 0 10px,var(--brass) 10px 20px);animation:shaft .6s linear infinite}
 .loom-grid.halted .loom::after{animation:none;filter:grayscale(1);opacity:.6}
 .belt{position:absolute;left:50%;top:-18px;width:6px;height:18px;margin-left:-3px;background:repeating-linear-gradient(180deg,#5b4a2e 0 4px,#9b845a 4px 8px)}
@@ -167,7 +195,8 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 @keyframes shaft{to{background-position:40px 0}}
 @keyframes belt{to{background-position:0 8px}}
 .loom-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.loom{position:relative;overflow:visible;min-height:96px;border:1px solid #b4b9bd;border-radius:4px;background:#fff;cursor:pointer;padding:10px}
+.loom-grid:not(.steam) .spot{display:flex;flex-direction:column;gap:6px}
+.loom{position:relative;overflow:visible;min-height:96px;border:1px solid #b4b9bd;border-radius:4px;background:#fff;padding:10px}
 .loom.on{border-color:var(--brick);background:var(--brick-wash)}
 .loom-frame{position:relative;display:block;height:56px;border:3px solid var(--soot);border-top-width:6px;border-radius:2px;overflow:hidden}
 .cloth{position:absolute;left:0;right:0;bottom:0;height:0;background:repeating-linear-gradient(90deg,#fff 0 4px,#dfe4e8 4px 8px)}
@@ -179,14 +208,23 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 @keyframes shuttle{from{left:4px}to{left:calc(100% - 20px)}}
 
 /* 3단: 운송 */
-.route{margin-top:16px;display:flex;flex-direction:column;gap:10px}
-.route-leg{display:flex;align-items:center;gap:8px}
-.route-tag{flex:none;font:700 16px var(--sans);color:var(--soot-deep)}
-.track{position:relative;flex:1;height:44px;border-radius:4px;overflow:hidden}
-.land .track{background:repeating-linear-gradient(90deg,#b9b4ad 0 14px,#c9c4bd 14px 28px)}
-.sea .track{background:linear-gradient(#cfdde3,#b5cad3)}
-.sea{padding-left:3.4em}
-.runner{position:absolute;left:0;top:4px;font-size:1.8rem;line-height:36px}
+/* 네 길을 한 번에: 왼쪽 절반은 육지(공장→항구), 오른쪽 절반은 바다(항구→먼 시장) */
+.race{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.race-ends{display:flex;justify-content:space-between;font:700 16px var(--sans);color:var(--soot-deep)}
+.lane{padding:6px 8px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.lane.mine{border:2px solid var(--brick);background:var(--brick-wash)}
+.lane-name{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font:500 16px var(--sans);color:var(--soot-deep);margin-bottom:4px}
+.mine-badge{padding:0 10px;border-radius:999px;background:var(--brick);color:#fff;font:700 14px var(--sans)}
+.lane-rank{margin-left:auto;font-weight:700;color:var(--brick)}
+.lane-track{--runner-w:84px;position:relative;display:flex;height:58px;border-radius:4px;overflow:hidden}
+.leg-land{flex:1;background:repeating-linear-gradient(90deg,#d6d1c9 0 14px,#e2ddd6 14px 28px);border-right:3px solid var(--soot)}
+.leg-sea{flex:1;background:linear-gradient(#dbe7ec,#c4d6de)}
+.runner{position:absolute;left:0;bottom:2px;width:var(--runner-w)}
+.runner img{display:block;width:100%;height:auto;mix-blend-mode:multiply}
+/* 증기로 가는 동안 굴뚝에서 매연이 뒤로 퍼진다 */
+.runner.smoke::before,.runner.smoke::after{content:"";position:absolute;left:30%;top:-2px;width:16px;height:16px;border-radius:50%;background:rgba(60,60,60,.55);animation:puff .7s linear infinite}
+.runner.smoke::after{animation-delay:.35s}
+@keyframes puff{from{opacity:.8;transform:translate(0,0) scale(.6)}to{opacity:0;transform:translate(-40px,-12px) scale(1.8)}}
 
 /* 4단: 자본가/노동자, 순서 */
 .role-list{display:flex;flex-direction:column;gap:12px}
@@ -230,6 +268,7 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
 
 @media (prefers-reduced-motion:reduce){
   .loom.on .cloth,.loom.on .shuttle,.loom.on .belt,.loom-grid.steam .loom::after,.engine-box.run .engine-pic img,.gear[aria-checked="true"] .gear-icon svg{animation:none}
+  .spin-pic-btn.running img,.spin-pic-btn.kick img,.runner.smoke::before,.runner.smoke::after{animation:none}
 }
 
 /* 태블릿 가로(1180)·세로(768~820): 기본값. 폰(≤560) */
@@ -238,15 +277,19 @@ input:focus,textarea:focus,button:focus-visible,summary:focus-visible,.opt:focus
   .steps li{padding:8px 2px;font-size:16px}
   .steps li.done::before{content:none}
   .card{padding:16px}
-  .spin-btn{width:120px;height:120px}
-  .spin-btn svg{width:64px;height:64px}
+  .spin-pic-btn{width:170px}
+  .spin-hint{font-size:14px;padding:3px 8px}
   .spin-clock,.spin-count{font-size:1.5rem}
+  .loom-row{grid-template-columns:50px repeat(3,1fr);gap:6px;padding:30px 6px 6px}
+  .loom-row .loom{padding:6px;min-height:80px}
+  .loom-row .loom-frame{height:44px}
+  .lane-track{--runner-w:64px;height:46px}
   .bar-row{grid-template-columns:1fr 6em;}
   .bar-row .bar-name{grid-column:1/-1}
   .loom-grid{grid-template-columns:repeat(2,1fr)}
   .fact{grid-template-columns:1fr}
   .pocket{min-height:56px}
-  .spin-head,.engine-box{grid-template-columns:96px 1fr;gap:10px}
+  .engine-box{grid-template-columns:96px 1fr;gap:10px}
   .gear-list{grid-template-columns:1fr}
   .opt-row .opt{flex-basis:100%}
   .nav .btn-ghost{flex-basis:28%}
